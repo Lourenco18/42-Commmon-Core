@@ -1,0 +1,105 @@
+ex0:
+Componentes importantes:
+✔️ sorted()
+
+Ordena uma lista:
+
+sorted(lista)
+✔️ key=lambda a: a['power']
+
+Define o critério de ordenação:
+
+a = cada elemento da lista
+a['power'] = valor usado para ordenar
+✔️ reverse=True
+
+Ordena do maior para o menor
+----------------------
+✔️ filter()
+
+Filtra elementos:
+
+filter(condição, lista)
+✔️ lambda
+
+Função anónima:
+
+lambda m: m['power'] >= min_power
+----------------------
+Transforma cada spell adicionando "*"
+
+✔️ map()
+
+Aplica uma função a todos os elementos:
+
+map(função, lista)
+✔️ f-strings
+f"* {s} *"
+
+👉 Resultado:
+
+['fireball'] → ['* fireball *']
+
+--------------------------------------------------------
+ex1:
+✔️ Funções como valores
+
+Em Python, funções podem ser:
+
+passadas como argumento
+devolvidas por outras funções
+
+Callable (muito importante)
+from typing import Callable
+🔍 O que significa:
+
+Callable = "isto é uma função"
+----------------------
+Função: spell_combiner
+def spell_combiner(spell1: Callable, spell2: Callable) -> Callable:
+🔍 O que faz:
+
+Combina duas funções numa só
+----------------------
+Permitem aceitar qualquer argumento:
+
+*args → argumentos posicionais
+**kwargs → argumentos com nome
+----------------------
+----------------------
+--------------------------------------------------------
+ex2
+Uma closure é:
+
+Uma função que "lembra" variáveis do contexto onde foi criada
+
+🔥 nonlocal (SUPER IMPORTANTE)
+
+Permite modificar a variável da função exterior
+
+
+--------------------------------------------------------
+ex3
+3. Função: partial_enchanter
+def partial_enchanter(base_enchantment: Callable) -> dict[str, Callable]:
+🔍 O que faz:
+
+Cria funções com argumentos já definidos
+
+👉 @lru_cache:
+
+✔️ guarda resultados anteriores
+✔️ evita cálculos repetidos
+✔️ melhora performance
+✔️ usado com funções recursivas
+Sem lru_cache, a função recalcula os mesmos valores várias vezes,
+ tornando a execução muito mais lenta.
+
+ ----------
+ @cast.register(int)
+
+👉 executa se argumento for int
+
+
+--------------------------------------------------------
+ex4

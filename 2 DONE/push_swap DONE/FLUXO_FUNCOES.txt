@@ -1,0 +1,571 @@
+================================================================================
+                    FLUXO DE EXECUÇÃO - ORDEM DAS FUNÇÕES
+================================================================================
+
+Este documento lista todas as funções por ORDEM DE EXECUÇÃO no push_swap,
+explicando o que cada uma faz e quando é chamada.
+
+================================================================================
+                              PONTO DE ENTRADA
+================================================================================
+
+[1] main(argc, argv) - INÍCIO DO PROGRAMA
+    Local: push_swap.c
+    O que faz:
+      - Inicializa os pointers dos stacks A e B como NULL
+      - Valida se há argumentos (argc deve ser > 1)
+      - Se há 1 argumento (argc == 2): split a string por espaços
+      - Se há múltiplos argumentos: trata cada um como número
+      - Chama init_stacks() para preencher o stack A
+      - Verifica se stack A já está ordenado
+      - Se não: chama sort_stack() para ordenar
+      - Liberta memória (free_stack e free_split)
+    
+    Argumentos:
+      - argc: número de argumentos
+      - argv: array de strings (argumentos)
+
+================================================================================
+                          FASE 1: PARSING E VALIDAÇÃO
+================================================================================
+
+[2] ft_split(s, c) - DIVIDIR STRING
+    Local: utils/split.c
+    Quando chamado: Se argc == 2 (argumentos como 1 string)
+    O que faz:
+      - Divide a string "s" pelo separador "c" (espaço ' ')
+      - Exemplo: "3 2 1" → ["3", "2", "1"]
+      - Retorna array de strings (alocado em memória)
+      - Última posição é NULL (para marcar fim)
+    
+    Passos internos:
+      1. count_substrings(): conta quantas substrings tem
+      2. Aloca memória para o array
+      3. Para cada substring: aloca memória e copia dados
+    
+    Retorna: char ** (array de strings)
+
+[3] init_stacks(a, split_args, argv, argc) - DECIDIR ORIGEM DOS DADOS
+    Local: push_swap.c
+    Quando chamado: Logo após validação e split
+    O que faz:
+      - Decide de onde vêm os números:
+        * Se argc == 2: usa split_args (string dividida)
+        * Se argc > 2: usa argv + 1 (argumentos diretos)
+      - Chama fill_stack_a() com os dados corretos
+    
+    Retorna: void (modifica *a)
+
+[4] fill_stack_a(a, argv) - PREENCHER STACK A
+    Local: init/stack_init.c
+    Quando chamado: Por init_stacks()
+    O que faz:
+      - Para CADA número nos argumentos:
+        1. error_syntax(): valida sintaxe (é número válido?)
+        2. ft_atoi(): converte string para long
+        3. Valida intervalo: INT_MIN ≤ n ≤ INT_MAX
+        4. error_duplicate(): verifica se número não está repetido
+        5. append_node(): cria novo nó e adiciona ao final de A
+      
+      Se ERROR em qualquer passo: chama free_errors() e sai com erro
+    
+    Retorna: void (modifica *a)
+
+[5] error_syntax(str) - VALIDAR SINTAXE
+    Local: utils/stack_check.c
+    Quando chamado: Em fill_stack_a() para cada número
+    O que faz:
+      - Verifica se string é número válido:
+        * Não pode ser vazio
+        * Pode começar com '+' ou '-'
+        * Resto deve ser apenas dígitos
+      - Se INVALIDO: retorna true (erro)
+      - Se VALIDO: retorna false (ok)
+    
+    Retorna: bool
+
+[6] ft_atoi(str) - CONVERTER STRING PARA INT
+    Local: init/stack_init.c
+    Quando chamado: Em fill_stack_a() após validar sintaxe
+    O que faz:
+      - Converte string em número inteiro (long)
+      - Ignora espaços no início
+      - Trata sinais '+' e '-'
+      - Retorna resultado como long (para depois verificar overflow)
+    
+    Retorna: long
+
+[7] error_duplicate(stack, n) - VERIFICAR DUPLICATAS
+    Local: utils/stack_check.c
+    Quando chamado: Em fill_stack_a() após converter para int
+    O que faz:
+      - Percorre todo o stack A
+      - Se encontrar o número "n" já existe: retorna true (erro)
+      - Se número é novo: retorna false (ok)
+    
+    Retorna: bool
+
+[8] append_node(stack, n) - ADICIONAR NÓ AO STACK
+    Local: init/stack_init.c
+    Quando chamado: Em fill_stack_a() se validação passou
+    O que faz:
+      - Cria novo nó (malloc)
+      - Define valor do nó = n
+      - Se stack vazio: este nó é o primeiro
+      - Se stack não vazio: adiciona no final (linked list)
+      - Mantém ligações prev/next
+    
+    Retorna: void (modifica *stack)
+
+[9] find_last_node(stack) - ENCONTRAR ÚLTIMO NÓ
+    Local: utils/stack_find.c
+    Quando chamado: Em append_node() para encontrar fim da lista
+    O que faz:
+      - Percorre stack até encontrar nó com next == NULL
+      - Retorna esse último nó
+    
+    Retorna: t_stack_node *
+
+[10] free_errors(stack) - LIBERTAR MEMÓRIA E SAIR COM ERRO
+     Local: utils/free.c
+     Quando chamado: Se alguma validação falhar em fill_stack_a()
+     O que faz:
+       - Liberta todos os nós do stack A
+       - Imprime "Error"
+       - Sai do programa com código 1 (erro)
+     
+     Retorna: void (sai do programa)
+
+================================================================================
+                       FASE 2: VERIFICAR SE JÁ ORDENADO
+================================================================================
+
+[11] stack_sorted(a) - VERIFICAR SE STACK ESTÁ ORDENADO
+     Local: utils/stack_check.c
+     Quando chamado: Em main() após preencher stack A
+     O que faz:
+       - Percorre stack A do topo para fundo
+       - Se qualquer elemento > próximo elemento: NÃO ORDENADO (false)
+       - Se todos elementos ≤ próximo: ORDENADO (true)
+       - Se stack NULL: considera ordenado (true)
+     
+     Retorna: bool
+
+Se ORDENADO: vai para free_stack() e sai
+Se NÃO ORDENADO: vai para sort_stack()
+
+================================================================================
+                    FASE 3: ESCOLHER ALGORITMO DE ORDENAÇÃO
+================================================================================
+
+[12] sort_stack(a, b) - DECIDIR QUAL ALGORITMO USAR
+     Local: push_swap.c
+     Quando chamado: Em main() se stack A não está ordenado
+     O que faz:
+       - Determina tamanho de A usando stack_len()
+       - Se tamanho == 2: chama sa() (swap simples)
+       - Se tamanho == 3: chama sort_three()
+       - Se tamanho > 3: chama sort_stacks() (algoritmo Turk)
+     
+     Retorna: void
+
+[13] stack_len(stack) - CONTAR ELEMENTOS
+     Local: utils/stack_check.c
+     Quando chamado: Em sort_stack() para decidir qual algoritmo
+     O que faz:
+       - Conta quantos nós tem no stack
+       - Percorre até encontrar nó = NULL
+     
+     Retorna: int (quantidade de elementos)
+
+================================================================================
+            CENÁRIO A: 2 ELEMENTOS - sa() [SWAP]
+================================================================================
+
+[14] sa(a, print) - TROCAR DOIS ELEMENTOS DO TOPO
+     Local: ops/swap_push.c
+     Quando chamado: Se stack_len(a) == 2
+     O que faz:
+       - Troca os dois primeiros nós de A
+       - Se print == true: imprime "sa"
+       - Único movimento necessário para ordenar 2 elementos
+     
+     Retorna: void
+
+================================================================================
+         CENÁRIO B: 3 ELEMENTOS - sort_three() [ESPECIALIZADO]
+================================================================================
+
+[15] sort_three(a) - ALGORITMO PARA 3 ELEMENTOS
+     Local: sort/sort_three.c
+     Quando chamado: Se stack_len(a) == 3
+     O que faz:
+       - Encontra o nó com o valor máximo
+       - Coloca o máximo no topo (com 0, 1 ou 2 rotações)
+       - Depois verifica: se 1º > 2º → troca (sa)
+       - Resultado: 3 elementos ordenados com máx 2 operações
+     
+     Passos:
+       1. find_max(a): encontra nó com maior valor
+       2. Verifica posição do máximo (topo/meio/fundo)
+       3. Roda para coloca máximo no topo (ra ou rra)
+       4. Verifica se 1º > 2º: se sim → sa
+     
+     Retorna: void
+
+[16] find_max(stack) - ENCONTRAR ELEMENTO MÁXIMO
+     Local: utils/stack_find.c
+     Quando chamado: Em sort_three()
+     O que faz:
+       - Percorre stack inteiro
+       - Retorna nó com maior valor
+     
+     Retorna: t_stack_node *
+
+[17] ra(a, print) - RODAR STACK A PARA CIMA
+     Local: ops/rotate_ops.c
+     Quando chamado: Em sort_three() se máximo no topo
+     O que faz:
+       - Move primeiro nó para final
+       - Exemplo: [3, 2, 1] → [2, 1, 3]
+       - Se print == true: imprime "ra"
+     
+     Retorna: void
+
+[18] rra(a, print) - RODAR STACK A PARA BAIXO
+     Local: ops/rotate_ops.c
+     Quando chamado: Em sort_three() se máximo no meio/fundo
+     O que faz:
+       - Move último nó para início
+       - Exemplo: [3, 2, 1] → [1, 3, 2]
+       - Se print == true: imprime "rra"
+     
+     Retorna: void
+
+================================================================================
+      CENÁRIO C: >3 ELEMENTOS - sort_stacks() [ALGORITMO TURK]
+================================================================================
+
+[19] sort_stacks(a, b) - ALGORITMO TURK COMPLETO
+     Local: sort/sort_stacks.c
+     Quando chamado: Se stack_len(a) > 3
+     
+     FASE 1: PUSH 2 ELEMENTOS PARA B
+     ────────────────────────────────
+     
+     [20] push_to_b(a, b, len) - MOVER 2 ELEMENTOS PARA B
+          O que faz:
+            - Se A tem > 3 elementos E não está ordenado:
+              * pb(b, a, true): move topo de A para B
+              * Reduz contador de comprimento
+            - Chamado 2 vezes (move 2 elementos)
+          
+          Retorna: void
+     
+     [21] pb(b, a, print) - PUSH B (mover de A para B)
+          Local: ops/swap_push.c
+          O que faz:
+            - Remove primeiro nó de A
+            - Adiciona como primeiro de B
+            - Se print == true: imprime "pb"
+          
+          Retorna: void
+     
+     FASE 2: REDUZIR A PARA 3 ELEMENTOS
+     ──────────────────────────────────
+     
+     Loop: while (len_a-- > 3 && !stack_sorted(a))
+       
+       [22] fill_nodes_a(a, b) - CALCULAR CUSTOS DE MOVIMENTO (A→B)
+            Local: nodes/nodes_init_a.c
+            O que faz:
+              - Para CADA nó em A:
+                1. current_index(): calcula posição do nó
+                2. Calcula if above_median (está na metade superior?)
+                3. set_target_a(): encontra melhor posição em B
+                4. cost_a(): calcula custo para mover este nó
+              - set_cheapest(): marca qual nó tem menor custo total
+            
+            Retorna: void
+       
+       [23] current_index(stack) - ATRIBUIR ÍNDICES
+            Local: nodes/index_utils.c
+            O que faz:
+              - Para cada nó: define index = sua posição (0, 1, 2, ...)
+              - Calcula above_median: index < stack_len/2?
+            
+            Retorna: void
+       
+       [24] set_target_a(a, b) - ENCONTRAR DESTINO DE CADA NÓ
+            Local: nodes/nodes_init_a.c
+            O que faz:
+              - Para cada nó em A:
+                * find_best_match_a(): procura maior número em B que é < este nó
+                * Se encontra: esse é o target
+                * Se não encontra: target = find_max(b)
+            
+            Retorna: void
+       
+       [25] find_best_match_a(b, target_val) - ENCONTRAR MELHOR MATCH
+            Local: nodes/nodes_init_a.c
+            O que faz:
+              - Procura em B o maior número que é menor que target_val
+              - Exemplo: target=5, B=[1,3,7] → match=3
+            
+            Retorna: t_stack_node *
+       
+       [26] cost_a(a, b) - CALCULAR CUSTO DE MOVIMENTO
+            Local: nodes/nodes_init_a.c
+            O que faz:
+              - Para cada nó em A:
+                * Calcula rotações necessárias para colocar nó no topo de A
+                * Calcula rotações necessárias para colocar target no topo de B
+                * push_cost = soma dos dois custos
+                * Se ambos above_median ou ambos abaixo: -1 (rotate_both é eficiente)
+            
+            Retorna: void
+       
+       [27] set_cheapest(stack) - MARCAR NÓ MAIS BARATO
+            Local: nodes/index_utils.c
+            O que faz:
+              - Percorre stack e encontra nó com push_cost mínimo
+              - Define cheapest = true para esse nó
+              - Todos outros: cheapest = false
+            
+            Retorna: void
+       
+       [28] move_a_to_b(a, b) - MOVER NÓ MAIS BARATO
+            Local: sort/sort_stacks.c
+            O que faz:
+              1. get_cheapest(a): encontra nó marcado como cheapest
+              2. Se ambos above_median: rotate_both(a, b, ...)
+              3. Senão, se ambos below_median: reverse_rotate_both(a, b, ...)
+              4. prep_for_push(a, nó): coloca nó no topo de A
+              5. prep_for_push(b, target): coloca target no topo de B
+              6. pb(b, a, true): move nó de A para B
+            
+            Retorna: void
+       
+       [29] get_cheapest(stack) - ENCONTRAR NÓ COM MENOR CUSTO
+            Local: nodes/get_cheapest.c
+            O que faz:
+              - Percorre stack
+              - Se encontra nó com cheapest==true: retorna
+              - Senão, retorna nó com menor push_cost
+            
+            Retorna: t_stack_node *
+       
+       [30] rotate_both(a, b, node_a, node_b) - RODAR AMBOS EFICIENTEMENTE
+            Local: ops/rotate_both.c
+            O que faz:
+              - Enquanto node_a não está no topo E node_b não está no topo:
+                * rrb(b, false) + rra(a, false): roda ambos abaixo
+                * Mas imprime apenas 1 "rrr" (otimização)
+              - Depois posiciona com rotações individuais se necessário
+            
+            Retorna: void
+       
+       [31] reverse_rotate_both(a, b, node_a, node_b) - RODAR AMBOS (REVERSO)
+            Local: ops/rotate_both.c
+            O que faz:
+              - Similar a rotate_both mas com rotações normais
+              - Enquanto ambos não estão no topo: ra + rb
+            
+            Retorna: void
+       
+       [32] prep_for_push(stack, top_node, stack_name) - COLOCAR NÓ NO TOPO
+            Local: utils/stack_find.c
+            O que faz:
+              - Rotaciona stack até que top_node esteja no topo
+              - Usa rotate (ra/rb) ou reverse_rotate (rra/rrb)
+              - Escolhe direção com menor custo
+            
+            Retorna: void
+     
+     (FIM DO LOOP - quando A tem 3 elementos)
+     
+     FASE 3: ORDENAR OS 3 ELEMENTOS DE A
+     ────────────────────────────────────
+     
+     [33] sort_three(a) - (MESMA FUNÇÃO DO CENÁRIO B)
+          Ordena os 3 elementos restantes em A
+     
+     FASE 4: MOVER TUDO DE B PARA A
+     ───────────────────────────────
+     
+     Loop: while (*b)  (enquanto B não está vazio)
+       
+       [34] fill_nodes_b(a, b) - CALCULAR CUSTOS DE MOVIMENTO (B→A)
+            Local: nodes/nodes_init_b.c
+            O que faz:
+              - Para CADA nó em B:
+                1. current_index(b): calcula índices
+                2. Calcula above_median
+                3. set_target_b(a, b): encontra melhor posição em A
+                4. cost_b(a, b): calcula custo
+              - set_cheapest(b): marca nó com menor custo
+            
+            Retorna: void
+       
+       [35] set_target_b(a, b) - ENCONTRAR DESTINO DE CADA NÓ (B→A)
+            Local: nodes/nodes_init_b.c
+            O que faz:
+              - Para cada nó em B:
+                * find_best_match_b(): procura menor número em A que é > este nó
+                * Se encontra: esse é o target
+                * Se não encontra: target = find_min(a)
+            
+            Retorna: void
+       
+       [36] cost_b(a, b) - CALCULAR CUSTO DE MOVIMENTO (B→A)
+            Local: nodes/nodes_init_b.c
+            O que faz:
+              - Similar a cost_a()
+              - Calcula rotações necessárias em B e em A
+              - push_cost = soma dos custos
+            
+            Retorna: void
+       
+       [37] move_b_to_a(a, b) - MOVER NÓ DE B PARA A
+            Local: sort/sort_stacks.c
+            O que faz:
+              1. get_cheapest(b): encontra nó mais barato
+              2. prep_for_push(a, target): coloca target no topo de A
+              3. pa(a, b, true): move nó de B para A
+            
+            Retorna: void
+       
+       [38] pa(a, b, print) - PUSH A (mover de B para A)
+            Local: ops/swap_push.c
+            O que faz:
+              - Remove primeiro nó de B
+              - Adiciona como primeiro de A
+              - Se print == true: imprime "pa"
+            
+            Retorna: void
+     
+     (FIM DO LOOP - quando B está vazio)
+     
+     FASE 5: POSICIONAR MÍNIMO NO TOPO
+     ──────────────────────────────────
+     
+     [39] current_index(a) - (MESMA FUNÇÃO - recalcula índices)
+          Recalcula os índices (posições) em A
+     
+     [40] min_on_top(a) - COLOCAR MÍNIMO NO TOPO
+          Local: sort/sort_stacks.c
+          O que faz:
+            - Encontra o nó com menor valor
+            - Roda A até que mínimo fique no topo
+            - Usa rotação normal (ra) ou reversa (rra)
+          
+          Retorna: void
+     
+     [41] find_min(stack) - ENCONTRAR ELEMENTO MÍNIMO
+          Local: utils/stack_find.c
+          O que faz:
+            - Percorre stack inteiro
+            - Retorna nó com menor valor
+          
+          Retorna: t_stack_node *
+     
+     RESULTADO FINAL: Stack A ordenado com mínimo no topo, B vazio!
+
+================================================================================
+                          FASE 4: LIMPEZA E SAÍDA
+================================================================================
+
+[42] free_stack(a) - LIBERTAR TODOS OS NÓS
+     Local: utils/free.c
+     Quando chamado: Em main() quando tudo está feito
+     O que faz:
+       - Percorre stack inteiro
+       - Para cada nó: free()
+       - Define stack como NULL
+     
+     Retorna: void
+
+[43] free_split(split_args) - LIBERTAR ARRAY DIVIDIDO
+     Local: push_swap.c
+     Quando chamado: Em main() se houve split
+     O que faz:
+       - Se split_args não é NULL:
+         * Liberta cada string
+         * Liberta o array em si
+     
+     Retorna: void
+
+[44] Program exits com código 0 (sucesso)
+     Local: main()
+     O programa termina com return (0)
+
+================================================================================
+                            RESUMO VISUAL
+================================================================================
+
+Fluxo geral:
+
+   main()
+     ├─ ft_split() [se 1 argumento com espaços]
+     ├─ init_stacks()
+     │   └─ fill_stack_a()
+     │       ├─ error_syntax()
+     │       ├─ ft_atoi()
+     │       ├─ error_duplicate()
+     │       └─ append_node()
+     │           └─ find_last_node()
+     ├─ stack_sorted()
+     └─ se não ordenado:
+         └─ sort_stack()
+             ├─ stack_len()
+             └─ se 2 elem: sa()
+             └─ se 3 elem: sort_three()
+                            ├─ find_max()
+                            ├─ ra() / rra()
+                            └─ sa()
+             └─ se > 3 elem: sort_stacks()
+                            ├─ push_to_b()
+                            │   └─ pb()
+                            ├─ [loop redução]
+                            │   ├─ fill_nodes_a()
+                            │   │   ├─ current_index()
+                            │   │   ├─ set_target_a()
+                            │   │   │   └─ find_best_match_a()
+                            │   │   ├─ cost_a()
+                            │   │   └─ set_cheapest()
+                            │   └─ move_a_to_b()
+                            │       ├─ get_cheapest()
+                            │       ├─ rotate_both() / reverse_rotate_both()
+                            │       ├─ prep_for_push()
+                            │       └─ pb()
+                            ├─ sort_three()
+                            ├─ [loop re-push]
+                            │   ├─ fill_nodes_b()
+                            │   │   ├─ current_index()
+                            │   │   ├─ set_target_b()
+                            │   │   ├─ cost_b()
+                            │   │   └─ set_cheapest()
+                            │   └─ move_b_to_a()
+                            │       ├─ get_cheapest()
+                            │       ├─ prep_for_push()
+                            │       └─ pa()
+                            ├─ current_index()
+                            └─ min_on_top()
+                                └─ find_min()
+     ├─ free_stack()
+     ├─ free_split()
+     └─ return 0
+
+================================================================================
+                         TOTAL DE FUNÇÕES: 44
+================================================================================
+
+Funções de validação: 4 (error_syntax, error_duplicate, stack_sorted, stack_len)
+Funções de manipulação: 8 (sa, pb, pa, ra, rra, rb, rrb)
+Funções de cálculo: 11 (fill_nodes_a, fill_nodes_b, cost_a, cost_b, etc)
+Funções auxiliares: 11 (find_max, find_min, get_cheapest, etc)
+Funções de limpeza: 2 (free_stack, free_split)
+Funções principais: 3 (main, sort_stack, sort_stacks)
+Funções de parsing: 3 (ft_split, init_stacks, fill_stack_a)
+
+================================================================================

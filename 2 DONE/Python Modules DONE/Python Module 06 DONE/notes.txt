@@ -1,0 +1,34 @@
+__init__.py — transforma a pasta num pacote, torna-se importável
+            - oq ue importo aqui fica acessivel com alchemy.funcao()
+
+Tipos de import:
+    # 1. Importa o módulo inteiro
+        import alchemy.elements
+        alchemy.elements.create_fire()  # tens de usar o nome completo
+
+    # 2. Importa uma função específica
+        from alchemy.elements import create_fire
+        create_fire()  # usas direto
+
+    # 3. Com alias (apelido)
+        from alchemy.potions import healing_potion as heal
+        heal()  # nome mais curto
+
+    # 4. Múltiplos de uma vez
+        from alchemy.elements import create_fire, create_water
+
+Imports Absolutos vs Relativos:
+    Absoluto — começa sempre da raiz do projeto:
+        from alchemy.elements import create_fire  # caminho completo
+    Relativo — usa pontos para navegar a partir do ficheiro atual:
+        from .basic import lead_to_gold    # . = mesma pasta
+        from ..potions import healing_potion  # .. = pasta pai
+
+Import ciircular:
+    ficheiros tentam se importar ao mesmo tempo
+        A solução usada aqui é o Late Import — 
+        importar dentro da função, não no topo do ficheiro. 
+        Assim o import só acontece quando a função é chamada 
+        (quando tudo já está carregado):
+    
+

@@ -1,0 +1,89 @@
+@abstratmethod -> 
+    obriga a qualquer subclasse a ter a funcao 
+
+class DataProcessor(ABC)->
+    ABC vem de Abstract Base Class (Classe Base Abstrata). 
+    É um recurso do Python para definir classes que não devem ser 
+    instanciadas diretamente, mas servem como modelo para outras classes.
+
+Method Overriding -> 
+    Está implementado na superclasse.
+    Subclasses não são obrigadas a implementá-lo.
+    Se a subclasse não sobrescrever, ela herda o comportamento da superclasse.
+    Se a subclasse quiser sobrescrever, pode criar um método com o mesmo nome
+
+isinstance(object,type)->
+    saber se aquele objeto é de um certo tipo
+
+
+Ex2:
+from typing import Any, List, Dict, Union(varios tipos), Protocol-> Usado para type hints, vizualizar melhor o tipo de dados 
+from collections import deque, defaultdict->
+
+.Simula o sistema empresarial de processamento de dados em pipeline
+    input-> Tranform-> Output
+    todos os dados passam por estas etapas
+    O sistema consegue processar varios formatos de dados usando a mesma pipeline:
+        Json
+        CSV
+        Streams de Texto
+
+.Protocol:
+    todas as classes que tenham uma funcao process é considerada um estado do processo
+    .class ProcessingStage(Protocol):
+        Define uma interface pipeline stage
+        .class ProcessingStage(Protocol):
+            qualquer stage deve implementar este metodo 
+
+.deque(maxlen=100):
+    Fila eficiente, guradar historico de resultado, quando passa de 100 removo os mais antigos
+
+.defaultdict(int):
+    Dicionario com um valor default, se a chave nao existir valor = 0
+
+.Time:
+    medir tempo de execução 
+    criar timestamps
+
+Fazes:
+1-InputStage:
+    interpreta dados de entrada:
+        1.JSON simples: {"sensor": "temp", "value": 23.5}
+            pega nos dados e trata os para um dicionario 
+        2.CSV: user,action,timestamp
+            tranforma em {"csv": ["user", "action", "timestamp"]}
+        3.Dados desconhecidos ->Raw
+            retorna {"raw": data}
+2-TransformStage:
+    Transforma e enriquece os dados.
+    Cria novo dicionario--- enriched = {k: v for k, v in data.items()}
+    Adiciona campos---enriched["processed"] = True ---Indica que foi processado.
+    adiciona o timestamp enriched["timestamp"] = time.time()
+3-OutputStage
+    Converte dados processados em mensagem final.
+    1.Se for sensor: Processed temperature reading: 23.5°C (Normal range)
+    2.CSV: User activity logged: 2 actions processed
+    3.Raw: Stream summary: processed raw input
+
+Oque acontece no main por ordem:
+1-manager = NexusManager()
+    cria a estrutura, um dicionario vazio(pipeline_id -> pipeline_object) e o historico
+2-def build_pipeline(adapter_cls, pid: str) -> ProcessingPipeline:
+    cria as pipliones automaticamente
+3-adiciona-se as etapas a cada pipeline 
+    JSON_PIPE
+   ↓
+InputStage
+   ↓
+TransformStage
+   ↓
+OutputStage
+4-Guardo as piplines prontas no dicionario
+5-manager.process_data(
+    "JSON_PIPE",
+    '{"sensor": "temp", "value": 23.5, "unit": "C"}'
+    )
+       Procura a pipline
+       executa a pipline
+       da print ao resultado
+

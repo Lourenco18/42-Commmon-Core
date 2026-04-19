@@ -1,0 +1,43 @@
+Subject:
+
+#####################################################################
+Given a 2D matrix s (list of lists), return a new matrix where      #
+each row is reversed individually.                                  #
+The function must:                                                  #
+-> Reverse the order of elements inside each row.                   #
+-> Keep the row order unchanged.                                    #
+-> Preserve the original dimensions of the matrix.                  #
+-> Return a new matrix with modified rows.                          #
+#####################################################################
+
+Test:
+
+# Basic cases
+reverseMatrix([[1, 2], [3, 4]])        
+# [[2, 1], [4, 3]]
+
+reverseMatrix([[1, 2, 3], [4, 5, 6]])  
+# [3, 2, 1], [6, 5, 4]]
+
+# Single row
+reverseMatrix([[1, 2, 3, 4]])          
+# [[4, 3, 2, 1]]
+
+# Single column
+reverseMatrix([[1], [2], [3]])         
+# [[1], [2], [3]]
+
+# Edge cases
+reverseMatrix([[1]])                   
+# [[1]]
+
+reverseMatrix([])                      
+# []
+
+# Larger matrix
+reverseMatrix([
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9]
+])
+# [[3, 2, 1], [6, 5, 4], [9, 8, 7]]

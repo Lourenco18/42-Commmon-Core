@@ -1,0 +1,44 @@
+
+Subject:
+
+#######################################################################
+#  Given a string `s`, count the number of times two consecutive       #
+#  characters are digits such that the second digit is exactly         #
+#  one greater than the first.                                        #
+#                                                                     #
+#  The function must:                                                 #
+#       -> Only consider adjacent characters in the string.           #
+#       -> Count pairs where both are digits.                         #
+#       -> Increment count if int(s[i]) == int(s[i-1]) + 1.           #
+#       -> Return the total count of such valid consecutive pairs.    #
+#######################################################################
+
+
+Test:
+
+# Basic cases
+print(Pattern_tracker("123a345"))  
+# 4  -> (1,2), (2,3), (3,4), (4,5)
+
+print(Pattern_tracker("1a2b3c4d5"))  
+# 0  -> no adjacent digits
+
+# Mixed complex case
+print(Pattern_tracker("12asd34hkh45kjhj56jhj67kjhjh78kjhjh89kjhkhj110"))
+# counts valid pairs like (1,2), (3,4), ..., (8,9)
+
+# Edge cases
+print(Pattern_tracker(""))          
+# 0
+
+print(Pattern_tracker("7"))         
+# 0
+
+print(answer.Pattern_tracker("111111"))    
+# 0  -> no increasing sequence
+
+print(Pattern_tracker("012345"))    
+# 5  -> (0,1), (1,2), (2,3), (3,4), (4,5)
+
+print(Pattern_tracker("98"))        
+# 0  -> decreasing, not counted

@@ -1,0 +1,58 @@
+# Maze configuration file
+# Lines starting with '#' are comments.
+# KEY=VALUE pairs only — one per line.
+
+# ── Maze dimensions ───────────────────────────────────────────────────────────
+WIDTH=20
+HEIGHT=15
+
+# ── Entry and exit (must be on the border) ────────────────────────────────────
+ENTRY=0,0
+EXIT=19,14
+
+# ── Output file ───────────────────────────────────────────────────────────────
+OUTPUT_FILE=maze.txt
+
+# ── Generation options ────────────────────────────────────────────────────────
+# PERFECT=True  → exactly one path between any two cells (spanning tree).
+# PERFECT=False → extra passages added, creating loops.
+PERFECT=False
+
+# ── Random seed (optional) ────────────────────────────────────────────────────
+# Remove or set to NONE for a non-deterministic maze.
+# SEED=42
+
+# ── Algorithm ─────────────────────────────────────────────────────────────────
+# Supported: dfs (Recursive Backtracker), prims (Randomized Prim's)
+# Bonus:     kruskals
+ALGORITHM=kruskals
+
+# ── Display mode ──────────────────────────────────────────────────────────────
+# ascii  → terminal ASCII renderer only
+# mlx    → MiniLibX graphical renderer only
+# both   → launch both renderers
+DISPLAY_MODE=mlx
+
+# ── Animation (bonus) ─────────────────────────────────────────────────────────
+ANIMATE=True
+
+# ── Visual palette (bonus) ───────────────────────────────────────────────────
+PALETTE=colorblind
+
+# ── SVG export (bonus) ───────────────────────────────────────────────────────
+EXPORT_SVG=maze.svg
+EXPORT_CELL_SIZE=24
+EXPORT_WALL=2
+
+# ── Rubber ducks overlay (bonus) ─────────────────────────────────────────────
+DUCKS=True
+DUCKS_COUNT=5
+DUCKS_ANIMATE=True
+
+# ── Animations (bonus) ──────────────────────────────────────────────────────
+AUTO_PALETTE=False
+PULSE_ENTRY_EXIT=False
+PATTERN_FADE=False
+DEAD_END_SHIMMER=False
+SEED_SLIDESHOW=False
+STATS_TICKER=False

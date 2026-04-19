@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "mazegen"
+version = "1.0.0"
+description = "Reusable maze generation library using recursive backtracker (DFS)"
+readme = "README_pkg.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["maze", "generator", "algorithm", "graph"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/mazegen"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mazegen*"]

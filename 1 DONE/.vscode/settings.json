@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "get_next_line.h": "c",
+        "stddef.h": "c"
+    }
+}

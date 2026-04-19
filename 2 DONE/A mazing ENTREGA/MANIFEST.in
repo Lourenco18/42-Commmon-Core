@@ -1,0 +1,4 @@
+include mazegen/py.typed
+recursive-include mazegen *.py
+include README.md
+include requirements.txt

@@ -1,0 +1,41 @@
+Subject:
+
+#######################################################################
+#  Given a list of strings `tlist`, return a new list sorted based on  #
+#  the following criteria:                                            #
+#                                                                     #
+#  The function must:                                                 #
+#       -> Sort strings by the number of vowels (ascending).          #
+#       -> If equal, sort by string length (ascending).               #
+#       -> If still equal, sort lexicographically (alphabetically).   #
+#       -> Vowels are: a, e, i, o, u (case-insensitive).              #
+#######################################################################
+
+
+Test:
+
+# Basic cases
+print(Sort_string(["apple", "bat", "car", "ae", "b"]))
+# ['b', 'ae', 'bat', 'car', 'apple']
+
+# Same vowel count, different lengths
+print(Sort_string(["dog", "cat", "hi", "a"]))
+# ['a', 'hi', 'cat', 'dog']
+
+# Same vowel count and length → lexicographical order
+print(Sort_string(["bat", "cat", "ant"]))
+# ['ant', 'bat', 'cat']
+
+# Mixed uppercase and lowercase
+print(Sort_string(["Apple", "banana", "Kiwi", "grape"]))
+# sorted by vowel count (case-insensitive)
+
+# Edge cases
+print(Sort_string([]))
+# []
+
+print(Sort_string(["a", "e", "i", "o", "u"]))
+# ['a', 'e', 'i', 'o', 'u']
+
+print(Sort_string(["bbb", "ccc", "ddd"]))
+# ['bbb', 'ccc', 'ddd']  (no vowels, same length → lex order)
