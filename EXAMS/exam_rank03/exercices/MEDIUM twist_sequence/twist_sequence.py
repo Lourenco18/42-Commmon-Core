@@ -13,5 +13,5 @@ print(twister([1, 2, 3], 3))
 print(twister([1, 2, 3], 5))
 print(twister([1], 10))
 print(twister([] , 3))
-print(twister([1, 2, 3, 4], -1))
+print(twister([1, 2, 3, 4], -2))
 
