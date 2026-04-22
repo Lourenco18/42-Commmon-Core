@@ -3,7 +3,7 @@ def isPalindrome(s) -> bool:
     p = ""
     i = 0
     while i < len(s):
-        if s[i].isalnum():
+        if s[i].lower() >='a' and s[i].lower() <= 'z' :
             p += s[i].lower()
         i+=1
     return p == p[::-1]
