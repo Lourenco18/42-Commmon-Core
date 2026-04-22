@@ -1,5 +1,4 @@
-
-def isValid(s: str) -> bool:
+def isValid(s) -> bool:
     start = ['[', '{', '(']
     end = [']', '}', ')']
     temp = []
