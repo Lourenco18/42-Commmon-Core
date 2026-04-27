@@ -1,17 +1,19 @@
-def sculptor(string) -> str:
-    s = ""
-    p = True
+def sculptor(s)-> str:
+    p = ""
     i = 0
-    while i < len(string):
-        if string[i].isalpha():
-            if p:
-                s += string[i].lower()
+    v = False
+    while i < len(s):
+        if s[i].isalpha():
+            if v:
+                p += s[i].upper()
             else:
-                s += string[i].upper()
-            p = not p
+                p += s[i].lower()
+            v = not v
         else:
-            s += string[i]
+            p += s[i]
         i+=1
-    return s
+    return p
 
+# Basic case
 print(sculptor("Hello world"))
+# "hElLo WoRlD"
