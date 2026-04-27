@@ -80,22 +80,21 @@ def sculptor(string) -> str:
         i+=1
     return s
 
-def mergeList(list1, list2):
-    if list1 is None:
-        return sorted(list2)
-    if list2 is None:
-        return sorted(list1)
-
-    final_list = []
+def mergeList(ls1,ls2)-> list:
+    new_list = []
+    if  ls1 is None:
+        return sorted(ls2)
+    if ls2 is None:
+        return sorted(ls1)
     i = 0
-    while i < len(list1):
-        final_list.append(list1[i])
-        i +=1
+    while i < len(ls1):
+        new_list.append(ls1[i])
+        i+=1
     i = 0
-    while i < len(list2):
-        final_list.append(list2[i])
-        i +=1
-    return sorted(final_list)
+    while i < len(ls2):
+        new_list.append(ls2[i])
+        i+=1
+    return sorted(new_list)
 
 def Shift_alphabet(s: str, n: int):
     shift = ""
@@ -209,3 +208,49 @@ def sculptor(s)-> str:
             p += s[i]
         i+=1
     return p
+
+def mergeList(ls1,ls2)-> list:
+    new_list = []
+    if len(ls1) == 0:
+        return ls2
+    if len(ls2) == 0:
+        return ls1
+    i = 0
+    while i < len(ls1):
+        new_list.append(ls1[i])
+        i+=1
+    i = 0
+    while i < len(ls2):
+        new_list.append(ls2[i])
+        i+=1
+    return sorted(new_list)
+
+def Shift_alphabet(s,n):
+    result = ""
+    for i in s:
+        if i.isalpha():
+            if i.isupper():
+                shift += chr((ord(i) - ord('A') + n) % 26 + ord('A'))
+            else:
+                shift += chr((ord(i) - ord('a') + n) % 26 + ord('a'))
+        else:
+            result += i
+    return result
+
+def convert_base(num, from_base,to_base):
+    digit = "0123456789ABCDEFGHIJKLMNOPRSTUVWXYZ"
+    try:
+        if not 2 <= from_base <= 36:
+            return "error"
+        if not 2 <= to_base <= 36:
+            return "error"
+        n = int(num,from_base)
+        if n == 0:
+            return "0"
+        res = ""
+        while res:
+            res += digits[n % to_base]
+            n //= to_base
+        return res[::-1]
+    except Exception:
+        return "error"
