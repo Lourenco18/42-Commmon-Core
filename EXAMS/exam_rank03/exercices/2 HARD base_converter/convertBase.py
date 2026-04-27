@@ -1,8 +1,8 @@
 def convert_base(num, from_base, to_base):
-    digits="0123456789ABCDEFGHIJKLMNOPRSTUVWXYZ"
+    digits = "0123456789ABCDEFGHIJKLMNOPRSTUVWXYZ"
     try:
         if not 2 <= from_base <= 36:
-            return  "error"
+            return "error"
         if not 2 <= to_base <= 36:
             return "error"
         n = int(num,from_base)
@@ -10,8 +10,8 @@ def convert_base(num, from_base, to_base):
             return "0"
         result = ""
         while n:
-            result += digits[n % to_base]
-            n //=to_base
+            result += digits[n % to_base ]
+            n //= to_base
         return result[::-1]
     except Exception:
         return "error"

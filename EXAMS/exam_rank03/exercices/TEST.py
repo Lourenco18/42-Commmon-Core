@@ -93,16 +93,17 @@ def mergeList(ls1,ls2)-> list:
         i+=1
     return sorted(new_list)
 
-def Shift_alphabet(s: str, n: int):
-    shift = ""
+def Shift_alphabet(s,n) -> str:
+    result = ""
     for i in s:
-        if 'a' <= i <= 'z':
-            shift += chr((ord(i) - ord('a') + n) % 26 + ord('a'))
-        elif 'A' <= i <= 'Z': 
-            shift += chr((ord(i) - ord('A') + n) % 26 + ord('A'))
+        if i.isalpha():
+            if i.isupper():
+                result += chr((ord(i) - ord('A') +n) % 26 + ord('A'))
+            else:
+                result += chr((ord(i) - ord('a') +n) %26 + ord('a'))
         else:
-            shift += i
-    return shift
+            result +=i
+    return result
 
 def convert_base(num: str, from_base: int, to_base: int) -> str:
     digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"

@@ -1,16 +1,14 @@
-def Shift_alphabet(s,n):
+def Shift_alphabet(s,n) -> str:
     result = ""
-    i = 0
-    while i < len(s):
-        if s[i].isalpha():
-            if s[i].islower():
-                result+=chr((ord(s[i])- ord('a') + n)% 26 + ord('a'))
+    for i in s:
+        if i.isalpha():
+            if i.isupper():
+                result += chr((ord(i) - ord('A') +n) % 26 + ord('A'))
             else:
-                result+=chr((ord(s[i])- ord('A') + n)% 26 + ord('A'))
-        else:  
-            result += s[i]
-        i+=1
-    return result 
+                result += chr((ord(i) - ord('a') +n) %26 + ord('a'))
+        else:
+            result +=i
+    return result
 # Basic cases
 print(Shift_alphabet("abz", 1))
 # "bca"
