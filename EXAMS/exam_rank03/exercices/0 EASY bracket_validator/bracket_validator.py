@@ -1,22 +1,20 @@
 def isValid(s)->bool:
-    start = ['(', '{', '[']
-    end = [')', '}', ']']
-    i = 0
+    start = ['(','{','[']
+    end =[')','}',']']
     temp = []
-    while i < len(s):
-        if s[i] in start:
-            temp.append(s[i])
-        elif s[i] in end:
+    for i in s:
+        if i in start:
+            temp.append(i)
+        elif i in end:
             if not temp:
                 return False
             t = temp.pop()
-            if s[i] == ')' and t!='(':
+            if i == ')' and t !='(':
                 return False
-            if s[i] == '}' and t!='{':
+            if i == '}' and t !='{':
                 return False
-            if s[i] == ']' and t!='[':
+            if i == ']' and t !='[':
                 return False
-        i +=1
     return len(temp) == 0
 
 

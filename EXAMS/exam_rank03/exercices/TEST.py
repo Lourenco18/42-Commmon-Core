@@ -32,50 +32,44 @@ def Anagram(s1, s2):
 
 # NOT DONE
 def isValid(s) -> bool:
-    start = ['[', '{', '(']
-    end = [']', '}', ')']
+       start = ['(','{','[']
+    end =[')','}',']']
     temp = []
-    i = 0
-    while i < len(s):
-        if s[i] in start:
-            temp.append(s[i])
-        elif s[i] in end:
+    for i in c:
+        if i in start:
+            temp.append(i)
+        elif i in end:
             if not temp:
                 return False
             t = temp.pop()
-            if s[i] == ")" and t != "(":
+            if i == ')' and t !='(':
                 return False
-            if s[i] == "}" and t != "{":
+            if i == '}' and t !='{':
                 return False
-            if s[i] == "]" and t != "[":
+            if i == ']' and t !='[':
                 return False
-        i += 1
     return len(temp) == 0
 
 def isPalindrome(s) -> bool:
-    temp = ""
-    i = 0
-    while i < len(s):
-        if s[i].isalpha():
-            temp += s[i].lower()
-        i+=1
-    return temp == temp[::-1]
+    p = ""
+    for i in s:
+        if i.isalpha():
+            p +=i.lower()
+    return p == p[::-1]
 
 def sculptor(string) -> str:
-    s = ""
-    p = True
-    i = 0
-    while i < len(string):
-        if string[i].isalpha():
-            if p:
-                s += string[i].lower()
+    v = False
+    p = ""
+    for i in s:
+        if i.isalpha():
+            if v:
+                p += i.upper()
             else:
-                s += string[i].upper()
-            p = not p
+                p += i.lower()
+            v = not v
         else:
-            s += string[i]
-        i+=1
-    return s
+            p += i
+    return p
 
 def mergeList(ls1,ls2)-> list:
     new_list = []
