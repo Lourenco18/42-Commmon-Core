@@ -30,14 +30,12 @@ def Anagram(s1, s2):
         return sorted(s1) == sorted(s2)
 
 
-
 # NOT DONE
 def isValid(s) -> bool:
     start = ['[', '{', '(']
     end = [']', '}', ')']
     temp = []
     i = 0
-
     while i < len(s):
         if s[i] in start:
             temp.append(s[i])
@@ -52,7 +50,6 @@ def isValid(s) -> bool:
             if s[i] == "]" and t != "[":
                 return False
         i += 1
-
     return len(temp) == 0
 
 def isPalindrome(s) -> bool:
@@ -162,7 +159,7 @@ def Anagram(s1,s2):
         return False
     return sorted(s1) == sorted(s2)
 
-#treino novidades
+#treino novidades 
 def isValid(s)->bool:
     start = ['(', '{', '[']
     end = [')', '}', ']']
@@ -238,7 +235,7 @@ def Shift_alphabet(s,n):
     return result
 
 def convert_base(num, from_base,to_base):
-    digit = "0123456789ABCDEFGHIJKLMNOPRSTUVWXYZ"
+    digits = "0123456789ABCDEFGHIJKLMNOPRSTUVWXYZ"
     try:
         if not 2 <= from_base <= 36:
             return "error"
@@ -248,9 +245,40 @@ def convert_base(num, from_base,to_base):
         if n == 0:
             return "0"
         res = ""
-        while res:
+        while n:
             res += digits[n % to_base]
             n //= to_base
         return res[::-1]
     except Exception:
         return "error"
+
+def Shift_alphabet(s,n):
+    result = ""
+    for i in s:
+        if i.isalpha():
+            if i.isupper():
+                result += chr((ord(i) - ord('A') + n)% 26 + ord('A')) 
+            else:
+                result += chr((ord(i) - ord('a') + n)% 26 + ord('a')) 
+        else:
+            result +=i
+    return result
+
+def convert_base(num, from_base,to_base):
+    digits = "0123456789ABCDEFGHIJKLMNOPRSTUVWXYZ"
+    try:
+        if not 2 <= from_base <= 36:
+            return "error"
+        if not 2 <= to_base <= 36:
+            return "error"
+        n = int(num,from_base)
+        if n == 0:
+            return "0"
+        result = ""
+        while n:
+            result += digits[n % to_base]
+            n //=to_base
+        return result[::-1]
+    except Exception:
+        return "error"
+    

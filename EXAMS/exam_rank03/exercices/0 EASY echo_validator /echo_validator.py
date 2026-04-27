@@ -1,4 +1,3 @@
-
 def isPalindrome(s) -> bool:
     temp = ""
     i = 0
