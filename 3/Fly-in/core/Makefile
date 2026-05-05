@@ -1,4 +1,4 @@
-MAP ?= maps/example.txt
+MAP ?= maps/easy/01_linear_path.txt
 
 install:
 	pip install flake8 mypy --break-system-packages

@@ -14,7 +14,6 @@ class SimulationResult:
 
 class Simulator:
     def __init__(self, graph: Graph, nb_drones: int) -> None:
-        """Initialize the Simulator."""
         self.graph: Graph = graph
         self.nb_drones: int = nb_drones
         self.pathfinder: Pathfinder = Pathfinder(graph)
@@ -24,17 +23,15 @@ class Simulator:
         result = SimulationResult()
 
         if self.graph.start is None or self.graph.end is None:
-            return result  # nothing to do
+            return result
 
-        # Build and assign paths
         self._initialize_drones()
 
-        # Reset graph occupancy before simulation
         self.graph.reset_capacities()
-        # Start zone hosts all drones initially (special exception)
+
         self.graph.start.current_drones = self.nb_drones
 
-        max_turns = 10_000  # safety limit to prevent infinite loops
+        max_turns = 10_000
         for _ in range(max_turns):
             if all(d.delivered for d in self.drones):
                 break
@@ -44,14 +41,11 @@ class Simulator:
                 result.turns.append(turn_log)
                 result.total_turns += 1
             else:
-                # No movement happened — increment turn count anyway
-                # to count waiting turns (but don't emit an empty line)
                 result.total_turns += 1
 
         return result
 
     def _initialize_drones(self) -> None:
-        """Create drones and assign each a planned path."""
         assert self.graph.start is not None
         assert self.graph.end is not None
 
@@ -68,9 +62,7 @@ class Simulator:
 
         for i in range(1, self.nb_drones + 1):
             drone = Drone(i, self.graph.start)
-            # Assign paths in round-robin so drones spread across routes
             chosen = paths[(i - 1) % len(paths)]
-            # Path includes start zone; drone starts there, so skip index 0
             drone.path = chosen
             drone.path_index = 1
             self.drones.append(drone)
@@ -78,11 +70,10 @@ class Simulator:
     def _execute_turn(self) -> str:
         movements: List[str] = []
 
-        # Reset per-turn connection usage
         for conn in self.graph.connections:
             conn.current_usage = 0
 
-        # Phase 1: determine intended moves for each drone
+        # Phase 1: collect candidate intentions (unconstrained — just next
         intentions: List[Optional[Tuple[Drone, Zone, Connection]]] = []
         for drone in self.drones:
             if drone.delivered:
@@ -91,23 +82,15 @@ class Simulator:
             intention = self._compute_intention(drone)
             intentions.append(intention)
 
-        # Phase 2: resolve conflicts (capacity checks)
-        # Count incoming drones per zone and per connection
-        zone_incoming: Dict[str, int] = {}
-        conn_incoming: Dict[str, int] = {}
+        # Phase 2: count how many drones are LEAVING each zone this turn
+        zone_leaving: Dict[str, int] = {}
+        for drone, intention in zip(self.drones, intentions):
+            if intention is not None:
+                name = drone.current_zone.name
+                zone_leaving[name] = zone_leaving.get(name, 0) + 1
 
-        for intention in intentions:
-            if intention is None:
-                continue
-            _, dest_zone, conn = intention
-            zone_incoming[dest_zone.name] = (
-                zone_incoming.get(dest_zone.name, 0) + 1
-            )
-            key = conn.name
-            conn_incoming[key] = conn_incoming.get(key, 0) + 1
-
-        # Phase 3: greedily approve moves (prioritise lower drone IDs)
-        approved_zone: Dict[str, int] = {}
+        # Phase 3: greedily approve moves (lower drone ID = higher priority).
+        approved_zone_in: Dict[str, int] = {}
         approved_conn: Dict[str, int] = {}
         approved_moves: Dict[int, Tuple[Zone, Connection]] = {}
 
@@ -117,15 +100,27 @@ class Simulator:
             _, dest_zone, conn = intention
             z_name = dest_zone.name
             c_name = conn.name
-            z_limit = dest_zone.max_drones if not dest_zone.is_end else 10 ** 9
-            z_ok = approved_zone.get(z_name, 0) < z_limit
+
+            if dest_zone.is_end:
+                z_limit = 10 ** 9
+            else:
+                leaving = zone_leaving.get(z_name, 0)
+                z_limit = (
+                    dest_zone.max_drones
+                    - dest_zone.current_drones
+                    + leaving
+                )
+
+            z_ok = approved_zone_in.get(z_name, 0) < z_limit
             c_ok = approved_conn.get(c_name, 0) < conn.max_link_capacity
+
             if z_ok and c_ok:
-                approved_zone[z_name] = approved_zone.get(z_name, 0) + 1
+                approved_zone_in[z_name] = (
+                    approved_zone_in.get(z_name, 0) + 1
+                )
                 approved_conn[c_name] = approved_conn.get(c_name, 0) + 1
                 approved_moves[drone.drone_id] = (dest_zone, conn)
 
-        # Phase 4: apply approved moves, update state
         for drone in self.drones:
             if drone.delivered:
                 continue
@@ -155,29 +150,22 @@ class Simulator:
         self,
         drone: Drone,
     ) -> Optional[Tuple[Drone, Zone, "Connection"]]:
-        # If drone is completing a restricted-zone transit
         if drone.is_in_transit():
             drone.turns_in_transit -= 1
             if drone.turns_in_transit == 0:
                 drone.transit_destination = None
                 drone.transit_connection = None
-            return None  # already at destination from last turn
+            return None
 
         next_zone = drone.next_target()
         if next_zone is None:
-            return None  # no more path
+            return None
 
         conn = self.graph.get_connection(drone.current_zone, next_zone)
         if conn is None:
-            return None  # no connection (path invalid)
+            return None
 
         if not next_zone.is_accessible():
-            return None
-
-        if not next_zone.has_capacity():
-            return None
-
-        if not conn.has_capacity():
             return None
 
         return (drone, next_zone, conn)

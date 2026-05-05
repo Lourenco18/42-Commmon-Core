@@ -18,7 +18,6 @@ class Pathfinder:
         heap: List[Tuple[float, float, str, List[Zone]]] = [
             (h_start, 0.0, source.name, [source])
         ]
-        # best g_cost seen for each zone name
         best_g: Dict[str, float] = {source.name: 0.0}
 
         while heap:
@@ -29,13 +28,12 @@ class Pathfinder:
             if current_zone is target:
                 return path
 
-            # Skip stale heap entries
             if g > best_g.get(current_name, float("inf")):
                 continue
 
             for neighbor in self.graph.neighbors(current_zone):
                 if not neighbor.is_accessible():
-                    continue  # skip blocked zones
+                    continue
 
                 step_cost = float(neighbor.movement_cost())
                 new_g = g + step_cost
@@ -49,7 +47,7 @@ class Pathfinder:
                         (new_f, new_g, neighbor.name, path + [neighbor])
                     )
 
-        return None  # no path found
+        return None
 
     def find_k_shortest_paths(
         self,
@@ -75,19 +73,14 @@ class Pathfinder:
                 root_path = prev[: spur_idx + 1]
                 root_names = [z.name for z in root_path]
 
-                # Temporarily remove connections used by existing k-paths
-                # that share the same root, to force diversification
                 removed_connections = self._block_used_connections(
                     k_paths, root_names
                 )
-                # Temporarily remove root nodes except spur (avoid revisit)
                 removed_nodes = set(root_names[:-1])
 
                 spur_path = self._find_path_avoiding(
                     spur_node, target, removed_connections, removed_nodes
                 )
-
-                # Restore after search (nothing actually mutated; we pass sets)
 
                 if spur_path is not None:
                     total = root_path[:-1] + spur_path
@@ -98,7 +91,6 @@ class Pathfinder:
                         cand_counter += 1
                         seen_paths.add(key)
 
-                # Remove already-registered conn blocks (no-op here, pure func)
                 _ = removed_connections
 
             if not candidates:
@@ -107,10 +99,6 @@ class Pathfinder:
             k_paths.append(best)
 
         return k_paths
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
 
     def _heuristic(self, a: Zone, b: Zone) -> float:
         dx = float(a.x - b.x)

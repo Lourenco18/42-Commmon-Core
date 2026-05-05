@@ -33,7 +33,6 @@ class Zone:
         self.max_drones: int = max_drones
         self.is_start: bool = is_start
         self.is_end: bool = is_end
-        # current occupancy (used during simulation)
         self.current_drones: int = 0
 
     def movement_cost(self) -> int:
@@ -50,7 +49,6 @@ class Zone:
         return self.current_drones < self.max_drones
 
     def __repr__(self) -> str:
-        """Return a string representation of the zone."""
         return (
             f"Zone(name={self.name!r}, type={self.zone_type!r}, "
             f"pos=({self.x},{self.y}), max_drones={self.max_drones})"

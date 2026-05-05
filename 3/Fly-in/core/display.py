@@ -2,8 +2,6 @@ from typing import Dict, List
 from graph import Graph
 from simulator import SimulationResult
 
-
-# ANSI color codes
 ANSI: Dict[str, str] = {
     "reset":   "\033[0m",
     "bold":    "\033[1m",

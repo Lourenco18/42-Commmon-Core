@@ -55,7 +55,6 @@ def main() -> int:
     display = Display(graph, nb_drones, use_color=use_color)
     display.print_header()
 
-    # Run simulation
     simulator = Simulator(graph, nb_drones)
     try:
         result = simulator.run()
@@ -65,14 +64,11 @@ def main() -> int:
             raise
         return 1
 
-    # Print turn-by-turn colored output
     for i, turn_line in enumerate(result.turns, start=1):
         display.print_turn(i, turn_line)
 
-    # Print mandatory plain output format
     display.print_simulation_output(result)
 
-    # Print statistics
     display.print_result(result)
 
     return 0

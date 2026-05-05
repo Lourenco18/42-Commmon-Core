@@ -12,7 +12,6 @@ class Connection:
         zone_b: "Zone",
         max_link_capacity: int = 1,
     ) -> None:
-        """Initialize a Connection."""
         if max_link_capacity < 1:
             raise ValueError(
                 f"max_link_capacity must be a positive integer, "

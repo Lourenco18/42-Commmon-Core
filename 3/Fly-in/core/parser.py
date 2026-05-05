@@ -195,7 +195,6 @@ class Parser:
     ) -> None:
         rest = line[len("connection:"):].strip()
 
-        # Extract optional metadata block
         meta: Dict[str, str] = {}
         meta_match = self._META_RE.search(rest)
         if meta_match:
@@ -215,7 +214,6 @@ class Parser:
                 lineno, "Connection endpoints cannot be empty"
             )
 
-        # Look up zones
         try:
             zone_a = graph.get_zone(name_a)
         except KeyError:
@@ -229,7 +227,6 @@ class Parser:
                 lineno, f"Unknown zone '{name_b}' in connection"
             )
 
-        # Check for duplicate connections
         canonical = "-".join(sorted([name_a, name_b]))
         if canonical in seen:
             raise ParseError(
