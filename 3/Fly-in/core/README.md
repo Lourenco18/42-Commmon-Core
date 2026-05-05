@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by [dasantos].*
+*This project has been created as part of the 42 curriculum by dasantos.*
 
 # Fly-in — Drone Routing Simulation
 
@@ -42,8 +42,8 @@ make debug MAP=maps/easy/01_linear_path.txt
 ### Lint
 
 ```bash
-make lint        # flake8 + mypy with standard flags
-make lint-strict # flake8 + mypy --strict
+make lint       
+make lint-strict
 ```
 
 ### Clean
