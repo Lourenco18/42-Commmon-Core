@@ -40,10 +40,7 @@ def main() -> None:
 
     print("[INFO] Loading function definitions...", file=sys.stderr)
     functions = load_function_definitions(args.functions_definition)
-    print(
-        f"[INFO] Loaded {len(functions)} function(s).",
-        file=sys.stderr,
-    )
+    print(f"[INFO] Loaded {len(functions)} function(s).", file=sys.stderr)
 
     print("[INFO] Loading prompts...", file=sys.stderr)
     prompts = load_prompts(args.input)

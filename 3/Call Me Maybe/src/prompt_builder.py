@@ -9,18 +9,6 @@ def build_function_selection_prompt(
     user_prompt: str,
     functions: List[FunctionDefinition],
 ) -> str:
-    """Build a prompt asking the LLM to select the appropriate function.
-
-    The prompt is structured so that the model's next tokens are expected
-    to form a valid function name from the provided list.
-
-    Args:
-        user_prompt: The user's natural language request.
-        functions: List of available function definitions.
-
-    Returns:
-        A formatted prompt string.
-    """
     lines = [
         "You are a function calling assistant.",
         "Given the user request, output only the exact function name.",
@@ -47,18 +35,6 @@ def build_argument_extraction_prompt(
     user_prompt: str,
     function: FunctionDefinition,
 ) -> str:
-    """Build a prompt to extract arguments for a specific function.
-
-    The prompt is structured so the model's continuation is expected
-    to be a JSON object matching the function's parameter schema.
-
-    Args:
-        user_prompt: The user's natural language request.
-        function: The selected function definition.
-
-    Returns:
-        A formatted prompt string.
-    """
     param_schema = ", ".join(
         f'"{name}": <{pdef.type}>'
         for name, pdef in function.parameters.items()

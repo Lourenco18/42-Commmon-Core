@@ -13,14 +13,6 @@ class ParameterDef(BaseModel):
     @field_validator("type")
     @classmethod
     def validate_type(cls, v: str) -> str:
-        """Ensure type is a supported JSON schema type.
-
-        Args:
-            v: The type string to validate.
-
-        Returns:
-            The validated type string.
-        """
         allowed = {
             "number", "string", "boolean",
             "integer", "array", "object",
