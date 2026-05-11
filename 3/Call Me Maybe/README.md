@@ -1,3 +1,15 @@
+dasantos@c1r1s4 ~/ENTREGA/callMeMaybe
+ % make run
+PYTHONPATH=llm_sdk /home/dasantos/.local/bin/uv run python -m src
+  × Failed to download `numpy==2.2.6`
+  ├─▶ Failed to extract archive: numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  ├─▶ I/O operation failed during extraction
+  ╰─▶ failed to create file
+      `/home/dasantos/.cache/uv/.tmps2dHZT/numpy/typing/tests/data/reveal/ndarray_conversion.pyi`: No space
+      left on device (os error 28)
+  help: `numpy` (v2.2.6) was included because `call-me-maybe` (v1.0.0) depends on `numpy`
+make: *** [Makefile:15: run] Error 1
+
 # call me maybe
 
 > Introduction to function calling in LLMs using constrained decoding.
