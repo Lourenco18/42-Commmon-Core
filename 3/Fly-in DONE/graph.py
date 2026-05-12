@@ -51,6 +51,38 @@ class Graph:
                 return conn
         return None
 
+    def validate_connectivity(self) -> None:
+        """Raise ValueError if there is no path from start to end.
+
+        Uses a simple BFS over accessible zones to check reachability.
+        This is called after the full graph is built (by the Parser) so
+        that all zones and connections are already present.
+        """
+        if self.start is None:
+            raise ValueError("Graph has no start_hub zone")
+        if self.end is None:
+            raise ValueError("Graph has no end_hub zone")
+
+        visited: set[str] = set()
+        queue: List[Zone] = [self.start]
+        visited.add(self.start.name)
+
+        while queue:
+            current = queue.pop(0)
+            if current is self.end:
+                return  # reachable
+            for neighbor in self.neighbors(current):
+                if neighbor.name not in visited and neighbor.is_accessible():
+                    visited.add(neighbor.name)
+                    queue.append(neighbor)
+
+        raise ValueError(
+            f"Graph is disconnected: no path exists from "
+            f"'{self.start.name}' to '{self.end.name}'. "
+            f"Check that every zone on the route has a connection and "
+            f"that no required zone is 'blocked'."
+        )
+
     def reset_capacities(self) -> None:
         for zone in self.zones.values():
             zone.current_drones = 0

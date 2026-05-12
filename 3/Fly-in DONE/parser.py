@@ -61,7 +61,10 @@ class Parser:
                 if start_count > 1:
                     raise ParseError(raw_lineno,
                                      "Multiple start_hub zones defined")
-                graph.add_zone(zone)
+                try:
+                    graph.add_zone(zone)
+                except ValueError as exc:
+                    raise ParseError(raw_lineno, str(exc)) from exc
 
             elif line.startswith("end_hub:"):
                 if nb_drones is None:
@@ -75,7 +78,10 @@ class Parser:
                 if end_count > 1:
                     raise ParseError(raw_lineno,
                                      "Multiple end_hub zones defined")
-                graph.add_zone(zone)
+                try:
+                    graph.add_zone(zone)
+                except ValueError as exc:
+                    raise ParseError(raw_lineno, str(exc)) from exc
 
             elif line.startswith("hub:"):
                 if nb_drones is None:
@@ -84,7 +90,10 @@ class Parser:
                         "nb_drones must be defined before zone declarations"
                     )
                 zone = self._parse_zone(line, "hub:", raw_lineno)
-                graph.add_zone(zone)
+                try:
+                    graph.add_zone(zone)
+                except ValueError as exc:
+                    raise ParseError(raw_lineno, str(exc)) from exc
 
             elif line.startswith("connection:"):
                 self._parse_connection(
@@ -101,6 +110,12 @@ class Parser:
             raise ParseError(0, "Missing start_hub declaration")
         if end_count == 0:
             raise ParseError(0, "Missing end_hub declaration")
+
+        # Validate that a path actually exists from start to end
+        try:
+            graph.validate_connectivity()
+        except ValueError as exc:
+            raise ParseError(0, str(exc)) from exc
 
         return graph, nb_drones
 
