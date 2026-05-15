@@ -1,3 +1,9 @@
+# ABOUTME: LLM SDK for local model inference using Hugging Face transformers.
+# ABOUTME: Provides Small_LLM_Model class for loading and running causal language models.
+
+import time
+from typing import Tuple
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedTokenizer, PreTrainedModel, logging
 from huggingface_hub import hf_hub_download
@@ -68,10 +74,10 @@ class Small_LLM_Model:
             p.requires_grad = False
 
 
-    def encode(self, text: str) -> list[int]:
-        """Tokenise *text* and return a list of input IDs."""
+    def encode(self, text: str) -> torch.Tensor:
+        """Tokenise *text* and return a 2-D ``input_ids`` tensor on the target device."""
         ids = self._tokenizer.encode(text, add_special_tokens=False)
-        return list(ids)
+        return torch.tensor([ids], device=self._device, dtype=torch.long)
 
 
     def decode(self, ids: torch.Tensor | list[int]) -> str:
@@ -81,29 +87,17 @@ class Small_LLM_Model:
         return self._tokenizer.decode(ids, skip_special_tokens=True)
 
 
-    def get_logits_from_input_ids(
-        self,
-        input_ids: list[int] | torch.Tensor,
-        past_key_values=None,
-    ) -> tuple[torch.Tensor, object]:
+    def get_logits_from_input_ids(self, input_ids: list[int]) -> list[float]:
         """
-        Given input token IDs, return raw logits and cached past key values.
+        Given a list of input token ids, return the raw logits (no softmax) for the next token.
         """
-        if isinstance(input_ids, torch.Tensor):
-            input_tensor = input_ids.to(device=self._device, dtype=torch.long)
-            if input_tensor.dim() == 1:
-                input_tensor = input_tensor.unsqueeze(0)
-        else:
-            input_tensor = torch.tensor([input_ids], device=self._device, dtype=torch.long)
-
+        input_tensor = torch.tensor([input_ids], device=self._device, dtype=torch.long)
         with torch.no_grad():
-            out = self._model(
-                input_ids=input_tensor,
-                past_key_values=past_key_values,
-                use_cache=True,
-            )
+            out = self._model(input_ids=input_tensor)
+        # Get logits for the last token in the sequence for the batch (batch size 1)
+        logits = out.logits[0, -1].tolist()
+        return [float(x) for x in logits]
 
-        return out.logits, getattr(out, "past_key_values", None)
 
     def get_path_to_vocab_file(self) -> str:
         vocab_file_name = self._tokenizer.vocab_files_names.get('vocab_file', "vocab.json")
@@ -113,9 +107,6 @@ class Small_LLM_Model:
         )
         return vocab_path
 
-    def get_path_to_vocabulary_json(self) -> str:
-        """Return the path to the tokenizer's vocabulary JSON file."""
-        return self.get_path_to_vocab_file()
 
     def get_path_to_merges_file(self) -> str:
         merges_file_name = self._tokenizer.vocab_files_names.get('merges_file', "merges.txt")

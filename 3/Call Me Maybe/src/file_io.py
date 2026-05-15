@@ -1,9 +1,3 @@
-"""File I/O utilities for reading and writing JSON files.
-
-This module handles all file operations including reading function definitions,
-input prompts, and writing output results. All errors are handled gracefully.
-"""
-
 import json
 import os
 import sys
@@ -17,16 +11,11 @@ from src.models import (
 
 
 def load_function_definitions(path: str) -> Optional[List[FunctionDefinition]]:
-    """Load and validate function definitions from a JSON file.
-
-    Args:
-        path: Path to the functions_definition.json file.
-
-    Returns:
-        A list of FunctionDefinition objects, or None if loading fails.
-    """
     if not os.path.exists(path):
-        print(f"[ERROR] Functions definition file not found: '{path}'", file=sys.stderr)
+        print(
+            f"[ERROR] Functions definition file not found: '{path}'",
+            file=sys.stderr,
+        )
         return None
 
     try:
@@ -41,8 +30,9 @@ def load_function_definitions(path: str) -> Optional[List[FunctionDefinition]]:
 
     if not isinstance(raw, list):
         print(
-            f"[ERROR] '{path}' must contain a JSON array of function definitions.",
-            file=sys.stderr
+            f"[ERROR] '{path}' must contain a JSON array of"
+            f" function definitions.",
+            file=sys.stderr,
         )
         return None
 
@@ -52,27 +42,23 @@ def load_function_definitions(path: str) -> Optional[List[FunctionDefinition]]:
             definitions.append(FunctionDefinition.model_validate(item))
         except Exception as e:
             print(
-                f"[WARNING] Skipping invalid function definition at index {i}: {e}",
-                file=sys.stderr
+                f"[WARNING] Skipping invalid function definition at index {i}:"
+                f" {e}",
+                file=sys.stderr,
             )
 
     if not definitions:
         print("[ERROR] No valid function definitions found.", file=sys.stderr)
         return None
 
-    print(f"[INFO] Loaded {len(definitions)} function definition(s) from '{path}'.")
+    print(
+        f"[INFO] Loaded {len(definitions)} function definition(s)"
+        f" from '{path}'."
+    )
     return definitions
 
 
 def load_prompts(path: str) -> Optional[List[PromptEntry]]:
-    """Load and validate prompt entries from a JSON file.
-
-    Args:
-        path: Path to the function_calling_tests.json file.
-
-    Returns:
-        A list of PromptEntry objects, or None if loading fails.
-    """
     if not os.path.exists(path):
         print(f"[ERROR] Input file not found: '{path}'", file=sys.stderr)
         return None
@@ -113,22 +99,16 @@ def load_prompts(path: str) -> Optional[List[PromptEntry]]:
 
 
 def save_results(results: List[FunctionCallResult], path: str) -> bool:
-    """Save function call results to a JSON output file.
-
-    Args:
-        results: List of FunctionCallResult objects to serialize.
-        path: Path where the output JSON file will be written.
-
-    Returns:
-        True if saving succeeded, False otherwise.
-    """
     output_dir = os.path.dirname(path)
     if output_dir:
         try:
             os.makedirs(output_dir, exist_ok=True)
         except OSError as e:
-            print(f"[ERROR] Could not create output directory '{output_dir}': {e}", file=sys.stderr)
-            return False
+            print(
+                "[ERROR] Could not create output directory '",
+                f"{output_dir}': {e}",
+                file=sys.stderr,
+            )
 
     serializable = [r.model_dump() for r in results]
 
@@ -136,7 +116,11 @@ def save_results(results: List[FunctionCallResult], path: str) -> bool:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(serializable, f, indent=2, ensure_ascii=False)
     except OSError as e:
-        print(f"[ERROR] Could not write output to '{path}': {e}", file=sys.stderr)
+        print(
+            "[ERROR] Could not create output directory '",
+            f"{output_dir}': {e}",
+            file=sys.stderr,
+        )
         return False
 
     print(f"[INFO] Saved {len(results)} result(s) to '{path}'.")

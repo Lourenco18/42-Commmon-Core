@@ -134,4 +134,4 @@ def coerce_value(value: Any, target_type: str) -> Any:
 
 
 # Union type for parameter values
-ParameterValue = Union[float, int, str, bool, list, dict, None]
+ParameterValue = Union[float, int, str, bool, list[Any], dict[str, Any], None]
