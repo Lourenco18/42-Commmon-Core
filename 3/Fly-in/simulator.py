@@ -45,7 +45,7 @@ class Simulator:
 
         return result
 
-    def _initialize_drones(self) -> None: 
+    def _initialize_drones(self) -> None:
         assert self.graph.start is not None
         assert self.graph.end is not None
 
