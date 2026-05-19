@@ -924,7 +924,10 @@ def select_function_and_extract_args(
     if arguments is None:
         arguments = _heuristic_extract_arguments(selected_fn.name, user_prompt)
 
-    return selected_name, arguments
+    # Ensure all required parameters are present, correctly typed,
+    # and that no extra keys are returned.
+    finalized = _finalize_parameters(selected_fn, arguments)
+    return selected_name, finalized
 
 
 def _heuristic_extract_arguments(
@@ -985,7 +988,7 @@ def _heuristic_extract_arguments(
 
         # detect simple pattern keywords
         if "number" in prompt.lower() or "numbers" in prompt.lower():
-            pat = r"\\d+"
+            pat = r"\d+"
             if rep is None:
                 rep = "NUM"
             if src:
@@ -1011,4 +1014,51 @@ def _heuristic_extract_arguments(
                 "replacement": m3.group(2),
             }
 
+    return None
+
+
+def _finalize_parameters(
+    function_def: FunctionDefinition,
+    raw_args: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Return a parameters dict that exactly matches the
+    function definition: contains every required parameter,
+    coerced to the expected type, and contains no extra keys.
+
+    Missing parameters are filled with sensible defaults for their
+    declared types.
+    """
+    params: Dict[str, Any] = {}
+    if raw_args is None:
+        raw_args = {}
+
+    for name, schema in function_def.parameters.items():
+        if name in raw_args:
+            try:
+                value = coerce_value(raw_args[name], schema.type)
+            except (ValueError, TypeError):
+                value = _default_for_type(schema.type)
+        else:
+            value = _default_for_type(schema.type)
+        params[name] = value
+
+    return params
+
+
+def _default_for_type(ptype: str) -> Any:
+    if ptype == "number":
+        return 0.0
+    if ptype == "integer":
+        return 0
+    if ptype == "string":
+        return ""
+    if ptype == "boolean":
+        return False
+    if ptype == "array":
+        return []
+    if ptype == "object":
+        return {}
+    if ptype == "null":
+        return None
+    # Fallback default
     return None

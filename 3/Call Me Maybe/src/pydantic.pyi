@@ -1,0 +1,13 @@
+from typing import Any, Callable, Type, TypeVar
+
+T = TypeVar("T")
+
+def field_validator(*args: str, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
+
+class BaseModel:
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+
+    @classmethod
+    def model_validate(cls: Type[T], __data: Any) -> T: ...
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> Any: ...
