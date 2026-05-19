@@ -1,7 +1,7 @@
 import json
 import sys
 from typing import Any, Dict, List, Optional, Tuple
-import numpy as np  # type: ignore[import-not-found]
+import numpy as np
 from src.models import FunctionDefinition, ParameterSchema, coerce_value
 from src.vocabulary import Vocabulary
 import re
@@ -789,20 +789,7 @@ def _parse_and_validate_json(
     try:
         parsed = json.loads(json_str)
     except json.JSONDecodeError:
-        # Attempt to fix common issues
-        fixed = _attempt_json_repair(json_str)
-        if fixed:
-            try:
-                parsed = json.loads(fixed)
-            except json.JSONDecodeError:
-                # print(
-                #     f"[WARNING] Could not parse generated JSON: {e}",
-                #     file=sys.stderr
-                # )
-                return None
-        else:
-            # print(f"[WARNING] JSON parse error: {e}", file=sys.stderr)
-            return None
+        return None
 
     if not isinstance(parsed, dict):
         # print("[WARNING] Generated JSON is not an object.", file=sys.stderr)
