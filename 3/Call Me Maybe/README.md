@@ -1,5 +1,3 @@
-# call me maybe
-
 *This project has been created as part of the 42 curriculum by dasantos>.*
 
 ---
@@ -63,8 +61,8 @@ uv run python -m src \
 ### Other Makefile Targets
 
 ```bash
-make lint          # Run flake8 + mypy with recommended flags
-make lint-strict   # Run flake8 + mypy --strict
+make flake          # Run flake8 + mypy with recommended flags
+make flake-strict   # Run flake8 + mypy --strict
 make debug         # Run with Python's pdb debugger
 make clean         # Remove __pycache__, .mypy_cache, *.pyc
 ```
@@ -208,30 +206,6 @@ for r in results:
 ]
 ```
 
-### Input: `data/input/functions_definition.json`
-```json
-[
-  {
-    "name": "fn_add_numbers",
-    "description": "Add two numbers together and return their sum.",
-    "parameters": { "a": { "type": "number" }, "b": { "type": "number" } },
-    "returns": { "type": "number" }
-  },
-  {
-    "name": "fn_greet",
-    "description": "Generate a greeting message for a person by name.",
-    "parameters": { "name": { "type": "string" } },
-    "returns": { "type": "string" }
-  },
-  {
-    "name": "fn_reverse_string",
-    "description": "Reverse a string and return the reversed result.",
-    "parameters": { "s": { "type": "string" } },
-    "returns": { "type": "string" }
-  }
-]
-```
-
 ### Output: `data/output/function_calling_results.json`
 ```json
 [
@@ -240,16 +214,6 @@ for r in results:
     "name": "fn_add_numbers",
     "parameters": { "a": 2.0, "b": 3.0 }
   },
-  {
-    "prompt": "Greet shrek",
-    "name": "fn_greet",
-    "parameters": { "name": "shrek" }
-  },
-  {
-    "prompt": "Reverse the string 'hello'",
-    "name": "fn_reverse_string",
-    "parameters": { "s": "hello" }
-  }
 ]
 ```
 
@@ -266,9 +230,4 @@ for r in results:
 - [Constrained Decoding Survey (arXiv)](https://arxiv.org/abs/2406.06608)
 
 ### How AI Was Used
-AI assistance was used for:
-- **Boilerplate scaffolding**: generating the initial file structure and pydantic model stubs
-- **Docstring drafting**: first-pass docstrings on utility functions
-- **Edge-case brainstorming**: identifying tricky tokeniser behaviours (BPE space prefixes, vocab size mismatches)
-
 All AI-generated content was reviewed, understood, tested, and adapted. No code was copied without full comprehension.

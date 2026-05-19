@@ -9,12 +9,12 @@ run:
 debug:
 	uv run python -m pdb -m src
 
-lint:
+flake:
 	python -m flake8 src
 	python -m mypy src --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 		--disallow-untyped-defs --check-untyped-defs
 
-lint-strict:
+flake-strict:
 	python -m flake8 src
 	python -m mypy src --strict
 
