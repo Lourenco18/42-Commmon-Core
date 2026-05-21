@@ -24,6 +24,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Disable ANSI color output.",
     )
     ap.add_argument(
+        "--info",
+        action="store_true",
+        default=False,
+        help="Disable ANSI color output.",
+    )
+    ap.add_argument(
         "--debug",
         action="store_true",
         default=False,

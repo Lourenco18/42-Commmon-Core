@@ -4,6 +4,7 @@ from zone import Zone
 from connection import Connection
 from drone import Drone
 from pathfinder import Pathfinder
+import sys
 
 
 class SimulationResult:
@@ -143,7 +144,12 @@ class Simulator:
                     movements.append(f"{drone.label}-{dest_zone.name}")
                 if dest_zone is self.graph.end:
                     drone.delivered = True
-
+        info = "--info" in sys.argv
+        if info:
+            for zones in self.graph.zones.values():
+                movements.append(f"{zones.name}-{zones.current_drones}/{zones.max_drones}")
+            for connections in self.graph.connections:
+                movements.append(f"{connections.name}-{connections.current_usage}/{connections.max_link_capacity}")
         return " ".join(movements)
 
     def _compute_intention(
