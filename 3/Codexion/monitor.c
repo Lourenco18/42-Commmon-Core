@@ -1,5 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   monitor.c                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/22 12:06:56 by dasantos          #+#    #+#             */
+/*   Updated: 2026/05/22 12:09:47 by dasantos         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
+/* 4) Rotina de monitorização: detecta burnout ou fim da simulação. */
 static int	check_burnout(t_sim *sim)
 {
 	int			i;
@@ -40,6 +53,7 @@ void	*monitor_routine(void *arg)
 	t_sim	*sim;
 	int		should_stop;
 
+	/* 4.1) Monitoriza periodicamente progresso e burnout. */
 	sim = (t_sim *)arg;
 	while (1)
 	{

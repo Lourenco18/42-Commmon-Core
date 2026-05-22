@@ -1,5 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   sim.c                                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/22 12:07:09 by dasantos          #+#    #+#             */
+/*   Updated: 2026/05/22 12:11:58 by dasantos         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
+/* 2) Inicializar simulação: mutex, coders, dongles e deadlines. */
 int	sim_init(t_sim *sim)
 {
 	int	i;
@@ -74,6 +87,7 @@ void	sim_run(t_sim *sim)
 {
 	int	i;
 
+	/* 3) Inicia monitor e threads dos coders, espera ambos terminarem. */
 	pthread_create(&sim->monitor_thread, NULL, monitor_routine, sim);
 
 	i = 0;
@@ -105,12 +119,14 @@ void	sim_run(t_sim *sim)
 	}
 
 	pthread_join(sim->monitor_thread, NULL);
+	return (1);
 }
 
 void	sim_cleanup(t_sim *sim)
 {
 	int	i;
 
+	/* 6) Libertar recursos: dongles, coders e mutexes. */
 	i = 0;
 	while (i < sim->n_coders)
 	{

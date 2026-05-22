@@ -1,7 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   dongle.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/22 12:06:05 by dasantos          #+#    #+#             */
+/*   Updated: 2026/05/22 12:11:58 by dasantos         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
 int	dongle_init(t_dongle *d, t_sim *sim)
 {
+	/* 3.1) Criar dongle com fila de espera e sincronização. */
 	d->sim = sim;
 	d->in_use = 0;
 	d->in_cooldown = 0;
@@ -45,20 +58,22 @@ int	dongle_acquire(t_dongle *d, t_coder *coder)
 	long long	now;
 	long long	wait_ms;
 
+	/* 3.2) Coloca o coder na fila e espera pelo turno e cooldown. */
 	sim = d->sim;
 	pthread_mutex_lock(&d->mutex);
 
-	/* Compute scheduling key */
 	if (sim->scheduler == SCHED_FIFO_MODE)
-		key = get_time_ms(); /* arrival time */
+		key = get_time_ms(); 
 	else
-		key = coder->deadline; /* EDF: earliest deadline first */
-
-	pq_push(&d->waiters, key, coder->id);
+		key = coder->deadline;
+	if (!pq_push(&d->waiters, key, coder->id))
+	{
+		pthread_mutex_unlock(&d->mutex);
+		return (0);
+	}
 
 	while (1)
 	{
-		/* Check if sim stopped */
 		pthread_mutex_lock(&sim->stop_mutex);
 		if (sim->stopped)
 		{
@@ -69,10 +84,8 @@ int	dongle_acquire(t_dongle *d, t_coder *coder)
 		}
 		pthread_mutex_unlock(&sim->stop_mutex);
 
-		/* Check if it's our turn and dongle is free */
 		if (is_my_turn(d, coder->id) && !d->in_use)
 		{
-			/* Check cooldown */
 			if (d->in_cooldown)
 			{
 				now = get_time_ms();
@@ -82,20 +95,17 @@ int	dongle_acquire(t_dongle *d, t_coder *coder)
 			}
 			if (!d->in_cooldown)
 			{
-				/* Acquire */
 				d->in_use = 1;
 				pq_remove(&d->waiters, coder->id);
 				pthread_mutex_unlock(&d->mutex);
 				return (1);
 			}
 		}
-		/* Wait for a signal (with short timeout to handle cooldown expiry) */
 		{
 			struct timespec	ts;
 			struct timeval	tv;
 
 			gettimeofday(&tv, NULL);
-			/* Wake up every 1ms to re-check cooldowns and stop flag */
 			ts.tv_sec = tv.tv_sec;
 			ts.tv_nsec = tv.tv_usec * 1000LL + 1000000LL;
 			if (ts.tv_nsec >= 1000000000LL)
@@ -111,6 +121,7 @@ int	dongle_acquire(t_dongle *d, t_coder *coder)
 void	dongle_release(t_dongle *d, t_coder *coder)
 {
 	(void)coder;
+	/* 3.3) Liberta o dongle e inicia o cooldown antes de avisar a fila. */
 	pthread_mutex_lock(&d->mutex);
 	d->in_use = 0;
 	d->in_cooldown = 1;

@@ -1,5 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   pqueue.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/22 12:07:00 by dasantos          #+#    #+#             */
+/*   Updated: 2026/05/22 12:09:47 by dasantos         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
+/* Fila de prioridade mínima usada para agendar coders nos dongles. */
 int	pq_init(t_pqueue *pq, int capacity)
 {
 	pq->nodes = (t_pq_node *)malloc(sizeof(t_pq_node) * (size_t)capacity);
@@ -112,7 +125,6 @@ int	pq_peek(t_pqueue *pq, t_pq_node *out)
 	return (1);
 }
 
-/* Remove a specific coder_id from the queue */
 int	pq_remove(t_pqueue *pq, int coder_id)
 {
 	int	i;

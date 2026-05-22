@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   codexion.h                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/22 12:06:02 by dasantos          #+#    #+#             */
+/*   Updated: 2026/05/22 12:11:58 by dasantos         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef CODEXION_H
 # define CODEXION_H
 
@@ -18,6 +30,7 @@
 # define STATE_REFACTORING 3
 # define STATE_BURNED_OUT 4
 
+/* Estados dos coders para monitorização e tomada de decisão. */
 
 typedef struct s_sim	t_sim;
 typedef struct s_dongle	t_dongle;
@@ -119,7 +132,7 @@ void		*monitor_routine(void *arg);
 void		*coder_routine(void *arg);
 
 int			sim_init(t_sim *sim);
-void		sim_run(t_sim *sim);
+int			sim_run(t_sim *sim);
 void		sim_cleanup(t_sim *sim);
 
 #endif

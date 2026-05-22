@@ -1,5 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   coder.c                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/22 12:05:59 by dasantos          #+#    #+#             */
+/*   Updated: 2026/05/22 12:09:47 by dasantos         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
+/* 5) Código do coder: compilar, depurar e refatorar até a simulação parar. */
 static int	sim_is_stopped(t_sim *sim)
 {
 	int	stopped;
@@ -17,6 +30,8 @@ static int	do_compile(t_coder *coder)
 	int		right;
 	int		first;
 	int		second;
+
+	/* 5.1) Tenta adquirir os dois dongles e compilar em série. */
 
 	sim = coder->sim;
 	left = coder->left_dongle;
@@ -84,6 +99,7 @@ void	*coder_routine(void *arg)
 	/* deadline already initialized in sim_init */
 	coder->state = STATE_WAITING;
 
+	/* 5.2) Ciclo principal do coder: compilar, depurar, refatorar. */
 	while (!sim_is_stopped(sim))
 	{
 		/* Attempt to compile */

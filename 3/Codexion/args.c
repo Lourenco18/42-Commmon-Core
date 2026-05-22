@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   args.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/05/22 12:05:51 by dasantos          #+#    #+#             */
+/*   Updated: 2026/05/22 12:09:32 by dasantos         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "codexion.h"
 
 static int	is_positive_int(const char *s)
@@ -16,6 +28,7 @@ static int	is_positive_int(const char *s)
 	return (i > 0);
 }
 
+/* 1) Validar argumentos de linha de comando e preencher simulação. */
 int	parse_args(int argc, char **argv, t_sim *sim)
 {
 	if (argc != 9)
