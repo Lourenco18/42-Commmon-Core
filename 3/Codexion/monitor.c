@@ -27,6 +27,7 @@ static int	check_burnout(t_sim *sim)
 		if (now >= deadline && sim->coders[i].state != STATE_COMPILING)
 		{
 			log_state(sim, sim->coders[i].id, "burned out");
+			sim->burnout_coder_id = sim->coders[i].id;
 			return (i + 1);
 		}
 		i++;
@@ -70,6 +71,7 @@ void	*monitor_routine(void *arg)
 		{
 			pthread_mutex_lock(&sim->stop_mutex);
 			sim->stopped = 1;
+			sim->end_time_ms = get_time_ms();
 			pthread_mutex_unlock(&sim->stop_mutex);
 			{
 				int	i;
@@ -89,6 +91,7 @@ void	*monitor_routine(void *arg)
 		{
 			pthread_mutex_lock(&sim->stop_mutex);
 			sim->stopped = 1;
+			sim->end_time_ms = get_time_ms();
 			pthread_mutex_unlock(&sim->stop_mutex);
 			{
 				int	i;

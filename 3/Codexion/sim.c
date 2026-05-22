@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:07:09 by dasantos          #+#    #+#             */
-/*   Updated: 2026/05/22 12:11:58 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/05/22 12:41:11 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,9 @@ int	sim_init(t_sim *sim)
 	int	i;
 
 	sim->stopped = 0;
+	sim->burnout_coder_id = 0;
 	sim->start_time_ms = get_time_ms();
+	sim->end_time_ms = 0;
 
 	if (pthread_mutex_init(&sim->stop_mutex, NULL) != 0)
 		return (0);
@@ -83,7 +85,7 @@ int	sim_init(t_sim *sim)
 	return (1);
 }
 
-void	sim_run(t_sim *sim)
+int	sim_run(t_sim *sim)
 {
 	int	i;
 
@@ -120,6 +122,46 @@ void	sim_run(t_sim *sim)
 
 	pthread_join(sim->monitor_thread, NULL);
 	return (1);
+}
+
+void	sim_print_stats(t_sim *sim)
+{
+	long long	total_ms;
+	int			total_compiles;
+	int			i;
+
+	total_ms = sim->end_time_ms - sim->start_time_ms;
+	total_compiles = 0;
+	i = 0;
+	while (i < sim->n_coders)
+	{
+		total_compiles += sim->coders[i].compile_count;
+		i++;
+	}
+	fprintf(stderr, "\n--- Simulation stats ---\n");
+	fprintf(stderr, "Result:        %s\n",
+		sim->burnout_coder_id ? "BURNOUT" : "SUCCESS");
+	fprintf(stderr, "Scheduler:     %s\n",
+		sim->scheduler == SCHED_FIFO_MODE ? "fifo" : "edf");
+	fprintf(stderr, "Total time:    %lldms\n", total_ms);
+	fprintf(stderr, "Coders:        %d\n", sim->n_coders);
+	fprintf(stderr, "Required:      %d compile(s) each\n",
+		sim->n_compiles_required);
+	fprintf(stderr, "Compilations:");
+	i = 0;
+	while (i < sim->n_coders)
+	{
+		fprintf(stderr, "  coder%d=%d", sim->coders[i].id,
+			sim->coders[i].compile_count);
+		i++;
+	}
+	fprintf(stderr, "\n");
+	if (sim->burnout_coder_id)
+		fprintf(stderr, "Burnout:       coder %d\n", sim->burnout_coder_id);
+	else
+		fprintf(stderr, "Burnout:       none\n");
+	fprintf(stderr, "Total compiles:%d\n", total_compiles);
+	fprintf(stderr, "------------------------\n");
 }
 
 void	sim_cleanup(t_sim *sim)

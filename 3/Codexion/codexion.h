@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:06:02 by dasantos          #+#    #+#             */
-/*   Updated: 2026/05/22 12:11:58 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/05/22 12:41:11 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,11 +99,12 @@ struct s_sim
 
 	pthread_mutex_t	stop_mutex;
 	int				stopped;
+	int				burnout_coder_id;
 
 	pthread_mutex_t	log_mutex;
 
-
 	long long		start_time_ms;
+	long long		end_time_ms;
 };
 
 
@@ -134,5 +135,6 @@ void		*coder_routine(void *arg);
 int			sim_init(t_sim *sim);
 int			sim_run(t_sim *sim);
 void		sim_cleanup(t_sim *sim);
+void		sim_print_stats(t_sim *sim);
 
 #endif

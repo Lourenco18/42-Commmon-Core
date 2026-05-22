@@ -31,6 +31,7 @@ int	main(int argc, char **argv)
 		sim_cleanup(&sim);
 		return (1);
 	}
+	sim_print_stats(&sim);
 	sim_cleanup(&sim);
 	return (0);
 }
