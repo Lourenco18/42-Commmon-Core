@@ -6,13 +6,13 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:06:54 by dasantos          #+#    #+#             */
-/*   Updated: 2026/05/22 12:11:58 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/05/22 14:58:34 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-/* 1) Inicia a execução: ler argumentos, inicializar simulação, correr e limpar. */
+/* 1) Inicia a execução: ler argumentos, inicmulação, correr e limpar. */
 int	main(int argc, char **argv)
 {
 	t_sim	sim;

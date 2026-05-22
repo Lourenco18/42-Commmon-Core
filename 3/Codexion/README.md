@@ -85,13 +85,13 @@ All time values are in **milliseconds**.
 #100ms tempo de arrefecimento do dongle
 #fifo-agendamento-primeiro a chegar
 #edf-mais urgente primeiro
-./codexion 5 800 200 100 50 3 100 fifo
+./codexion 5 2000 200 100 50 3 100 fifo
 
 # 4 coders, 600ms burnout threshold, EDF scheduling
-./codexion 4 600 150 100 50 5 80 edf
+ ./codexion 4 1000 150 100 50 5 80 edf
 
 # Edge case: single coder
-./codexion 1 1000 200 100 50 3 0 fifo
+./codexion 1 2000 200 100 50 3 0 fifo
 ```
 
 ---
