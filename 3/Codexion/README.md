@@ -76,7 +76,15 @@ All time values are in **milliseconds**.
 ### Examples
 
 ```bash
-# 5 coders, 800ms burnout threshold, FIFO scheduling
+# 5 coders, 
+#800ms-tempo maximo sem compilar
+#200ms-duracao de cada compilacao
+#100ms-duracao de cada sessao de debug
+#50ms- duracao de cada refatoracao
+#3- numero minimo de compilacoes que cada programador tem de fazer
+#100ms tempo de arrefecimento do dongle
+#fifo-agendamento-primeiro a chegar
+#edf-mais urgente primeiro
 ./codexion 5 800 200 100 50 3 100 fifo
 
 # 4 coders, 600ms burnout threshold, EDF scheduling

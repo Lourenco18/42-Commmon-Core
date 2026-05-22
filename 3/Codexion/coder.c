@@ -22,10 +22,6 @@ static int	do_compile(t_coder *coder)
 	left = coder->left_dongle;
 	right = coder->right_dongle;
 
-	/*
-	** Deadlock prevention: always acquire the lower-indexed dongle first.
-	** This imposes a global ordering and breaks circular wait (Coffman condition).
-	*/
 	if (left < right)
 	{
 		first = left;

@@ -15,7 +15,6 @@ int	sim_init(t_sim *sim)
 		return (0);
 	}
 
-	/* Allocate coders */
 	sim->coders = (t_coder *)malloc(sizeof(t_coder) * (size_t)sim->n_coders);
 	if (!sim->coders)
 	{
@@ -25,7 +24,6 @@ int	sim_init(t_sim *sim)
 	}
 	memset(sim->coders, 0, sizeof(t_coder) * (size_t)sim->n_coders);
 
-	/* Allocate dongles: one per coder, placed between adjacent coders */
 	sim->dongles = (t_dongle *)malloc(sizeof(t_dongle) * (size_t)sim->n_coders);
 	if (!sim->dongles)
 	{
@@ -36,7 +34,6 @@ int	sim_init(t_sim *sim)
 	}
 	memset(sim->dongles, 0, sizeof(t_dongle) * (size_t)sim->n_coders);
 
-	/* Init dongles */
 	i = 0;
 	while (i < sim->n_coders)
 	{
@@ -53,25 +50,16 @@ int	sim_init(t_sim *sim)
 		i++;
 	}
 
-	/* Init coders */
 	i = 0;
 	while (i < sim->n_coders)
 	{
-		sim->coders[i].id = i + 1; /* 1-indexed */
+		sim->coders[i].id = i + 1;
 		sim->coders[i].compile_count = 0;
 		sim->coders[i].state = STATE_WAITING;
 		sim->coders[i].sim = sim;
-		/*
-		** Initialize deadline before any thread starts, using start_time_ms,
-		** so the monitor does not false-positive on startup.
-		*/
 		sim->coders[i].last_compile_start = sim->start_time_ms;
 		sim->coders[i].deadline = sim->start_time_ms + sim->time_to_burnout;
-		/*
-		** Dongle layout (circular):
-		** Coder i has dongle i on the left and dongle (i+1)%n on the right.
-		** Special case: 1 coder -> only 1 dongle (index 0 on both sides).
-		*/
+		
 		sim->coders[i].left_dongle = i;
 		if (sim->n_coders == 1)
 			sim->coders[i].right_dongle = 0;
@@ -86,10 +74,8 @@ void	sim_run(t_sim *sim)
 {
 	int	i;
 
-	/* Launch monitor thread first */
 	pthread_create(&sim->monitor_thread, NULL, monitor_routine, sim);
 
-	/* Launch coder threads */
 	i = 0;
 	while (i < sim->n_coders)
 	{
@@ -98,7 +84,6 @@ void	sim_run(t_sim *sim)
 		i++;
 	}
 
-	/* Join coder threads */
 	i = 0;
 	while (i < sim->n_coders)
 	{
@@ -106,12 +91,10 @@ void	sim_run(t_sim *sim)
 		i++;
 	}
 
-	/* Ensure monitor finishes */
 	pthread_mutex_lock(&sim->stop_mutex);
 	sim->stopped = 1;
 	pthread_mutex_unlock(&sim->stop_mutex);
 
-	/* Wake dongles so monitor can exit if waiting */
 	i = 0;
 	while (i < sim->n_coders)
 	{

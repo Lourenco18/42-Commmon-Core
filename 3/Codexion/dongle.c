@@ -29,9 +29,6 @@ void	dongle_destroy(t_dongle *d)
 	pthread_mutex_destroy(&d->mutex);
 }
 
-/*
-** Returns 1 if this coder is the top of the queue (i.e., has priority)
-*/
 static int	is_my_turn(t_dongle *d, int coder_id)
 {
 	t_pq_node	top;
@@ -41,16 +38,6 @@ static int	is_my_turn(t_dongle *d, int coder_id)
 	return (top.coder_id == coder_id);
 }
 
-/*
-** Acquire a dongle:
-**   1. Register in the priority queue with the appropriate key
-**   2. Wait until:
-**      a. We are at the front of the queue
-**      b. The dongle is not in use
-**      c. Cooldown has elapsed
-**      d. Simulation is not stopped
-**   3. Mark dongle as in_use and remove from queue
-*/
 int	dongle_acquire(t_dongle *d, t_coder *coder)
 {
 	t_sim		*sim;
