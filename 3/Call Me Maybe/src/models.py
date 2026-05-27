@@ -3,28 +3,11 @@ from pydantic import BaseModel, field_validator
 
 
 class ParameterSchema(BaseModel):
-    """Schema definition for a single function parameter.
-
-    Attributes:
-        type: The JSON type of the parameter (number, string, boolean, etc.).
-    """
-
     type: str
 
     @field_validator("type")
     @classmethod
     def validate_type(cls, v: str) -> str:
-        """Validate that the type is a supported JSON type.
-
-        Args:
-            v: The type string to validate.
-
-        Returns:
-            The validated type string.
-
-        Raises:
-            ValueError: If the type is not supported.
-        """
         allowed = {"number", "string", "boolean",
                    "integer", "array", "object", "null"}
         if v not in allowed:
@@ -113,15 +96,6 @@ VALID_VALUE_PREFIXES: Dict[str, List[str]] = {
 
 
 def coerce_value(value: Any, target_type: str) -> Any:
-    """Coerce a parsed JSON value to the target type.
-
-    Args:
-        value: The raw parsed value.
-        target_type: The expected JSON type string.
-
-    Returns:
-        The value coerced to the appropriate Python type.
-    """
     if target_type in ("number",):
         return float(value)
     if target_type == "integer":

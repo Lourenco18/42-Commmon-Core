@@ -905,14 +905,9 @@ def select_function_and_extract_args(
     arguments = constrained_generate_arguments(
         arg_prompt_ids, selected_fn, vocab, get_logits_fn
     )
-
-    # Fallback: if constrained decoding failed to produce arguments,
-    # try a simple regex-based heuristic extractor for common patterns.
     if arguments is None:
         arguments = _heuristic_extract_arguments(selected_fn.name, user_prompt)
 
-    # Ensure all required parameters are present, correctly typed,
-    # and that no extra keys are returned.
     finalized = _finalize_parameters(selected_fn, arguments)
     return selected_name, finalized
 
@@ -921,11 +916,6 @@ def _heuristic_extract_arguments(
     fn_name: str,
     prompt: str,
 ) -> Optional[Dict[str, Any]]:
-    """Heuristic regex-based argument extractor for common test prompts.
-
-    This is a best-effort fallback when the constrained decoder fails.
-    It recognises simple patterns used in the provided test prompts.
-    """
     prompt = prompt.strip()
     # fn_add_numbers: extract first two numbers
     if fn_name == "fn_add_numbers":
@@ -1008,13 +998,6 @@ def _finalize_parameters(
     function_def: FunctionDefinition,
     raw_args: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    """Return a parameters dict that exactly matches the
-    function definition: contains every required parameter,
-    coerced to the expected type, and contains no extra keys.
-
-    Missing parameters are filled with sensible defaults for their
-    declared types.
-    """
     params: Dict[str, Any] = {}
     if raw_args is None:
         raw_args = {}

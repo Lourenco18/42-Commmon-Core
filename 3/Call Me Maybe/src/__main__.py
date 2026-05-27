@@ -205,7 +205,6 @@ def run(args: CLIArgs) -> int:
 
 
 def main() -> None:
-    """CLI entry point - parse args and run the pipeline."""
     args = parse_args()
     exit_code = run(args)
     sys.exit(exit_code)
