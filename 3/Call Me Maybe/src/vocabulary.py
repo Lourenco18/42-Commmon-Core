@@ -11,15 +11,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 class Vocabulary:
-    """Manages token-to-string and string-to-token mappings for a
-    language model.
-
-    Attributes:
-        id_to_token: Maps integer token ID to token string.
-        token_to_ids: Maps token string to list of token IDs.
-        vocab_size: Total number of tokens loaded.
-    """
-
     def __init__(self) -> None:
         """Initialise an empty Vocabulary."""
         self.id_to_token: Dict[int, str] = {}

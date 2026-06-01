@@ -581,41 +581,6 @@ def _find_current_key(text: str, param_names: List[str]) -> Optional[str]:
     return None
 
 
-def _is_inside_string_key(text: str) -> bool:
-    quote_count = text.count('"') - text.count('\\"')
-    trailing = text.split('"')[-1]
-    return quote_count % 2 == 1 and not any(c in trailing for c in [":", "}"])
-
-
-def _extract_partial_key(text: str) -> str:
-    """Extract the partial key string from inside an open quote."""
-    parts = text.split('"')
-    if len(parts) >= 2:
-        return parts[-1]
-    return ""
-
-
-def _is_inside_string_value(text: str, params: List[str],
-                            filled: List[str]) -> bool:
-    for key in params:
-        if key in filled:
-            continue
-        pattern = f'"{key}":'
-        if pattern in text or f'"{key}" :' in text:
-            after = text.split(pattern, 1)[-1] if pattern in text else ""
-            after = after.lstrip()
-            if after.startswith('"'):
-                quote_count = after.count('"') - after.count('\\"')
-                return quote_count % 2 == 1
-    return False
-
-
-def _extract_partial_value(text: str) -> str:
-    parts = text.rsplit('"', 2)
-    if len(parts) >= 2:
-        return parts[-1]
-    return ""
-
 
 def _is_building_number(text: str) -> bool:
     return bool(text) and (text[-1].isdigit() or text[-1] in "-.")
@@ -777,11 +742,6 @@ def _parse_and_validate_json(
     end = raw_json.rfind("}") + 1
 
     if start == -1 or end == 0:
-        # print(
-        #     f"[WARNING] No JSON object found in"
-        #     f"generated text: {raw_json[:100]}",
-        #     file=sys.stderr
-        # )
         return None
 
     json_str = raw_json[start:end]
@@ -816,24 +776,6 @@ def _parse_and_validate_json(
             result[param_name] = parsed[param_name]
 
     return result
-
-
-def _attempt_json_repair(json_str: str) -> Optional[str]:
-    s = json_str.strip()
-
-    # Add missing closing brace
-    if s.startswith("{") and not s.endswith("}"):
-        # Count open/close braces
-        opens = s.count("{")
-        closes = s.count("}")
-        s += "}" * (opens - closes)
-
-    # Remove trailing commas before closing brace
-    import re
-    s = re.sub(r",\s*}", "}", s)
-    s = re.sub(r",\s*]", "]", s)
-
-    return s
 
 
 def select_function_and_extract_args(
