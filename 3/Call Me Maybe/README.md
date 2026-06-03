@@ -1,181 +1,283 @@
-*This project has been created as part of the 42 curriculum by dasantos>.*
+# call me maybe
+
+*This project was created as part of the 42 curriculum by dasantos.*
 
 ---
 
 ## Description
 
-**call me maybe** is an introduction to **function calling in Large Language Models (LLMs)**. The goal is to translate natural language prompts into structured, machine-executable function calls using **constrained decoding** — a technique that guarantees 100% valid, schema-compliant JSON output even from a tiny 0.6B parameter model.
+**call me maybe** is an introduction to **function calling with Large Language Models (LLMs)**. Its goal is to translate natural-language prompts into structured, machine-executable function calls using **constrained decoding** — a technique that guarantees valid, schema-compliant JSON output, even when using a small 0.6B-parameter model.
 
-Given a prompt like `"What is the sum of 40 and 2?"`, the system does **not** answer "42". Instead, it produces:
+For example, given the prompt:
+
+```text
+What is the sum of 40 and 2?
+```
+
+the system does **not** answer `"42"`. Instead, it generates:
 
 ```json
 {
   "prompt": "What is the sum of 40 and 2?",
   "name": "fn_add_numbers",
-  "parameters": { "a": 40.0, "b": 2.0 }
+  "parameters": {
+    "a": 40.0,
+    "b": 2.0
+  }
 }
 ```
 
-The system uses the **Qwen/Qwen3-0.6B** model via the provided `llm_sdk` package and enforces structured output through constrained decoding — not prompt engineering alone.
+The project uses **Qwen/Qwen3-0.6B** through the provided `llm_sdk` package and enforces structured output through constrained decoding rather than prompt engineering alone.
 
 ---
 
-## Instructions
+## Installation
 
 ### Prerequisites
 
-- Python 3.10 or later
-- [uv](https://github.com/astral-sh/uv) package manager
-- The `llm_sdk` package (copy it into the project root alongside `src/`)
+* Python 3.10 or later
+* `uv` package manager
+* The `llm_sdk` package (copied into the project root alongside `src/`)
 
-### Installation
+### Setup
 
 ```bash
-# Clone the repository and navigate to the project root
+# Clone the repository
 git clone <your-repo-url>
 cd call_me_maybe
 
-# Copy the llm_sdk package into the project root
-cp -r /path/to/llm_sdk ./llm_sdk
+mkdir -p /sgoinfre/dasantos/.cache/uv
+export UV_CACHE_DIR=/sgoinfre/dasantos/.cache/uv
 
-# Install dependencies
-make install
-# or: uv sync
-```
+mkdir -p /sgoinfre/dasantos/tmp
+export TMPDIR=/sgoinfre/dasantos/tmp
 
-### Running the Program
+mkdir -p /sgoinfre/dasantos/.cache
+export XDG_CACHE_HOME=/sgoinfre/dasantos/.cache
 
-```bash
-# Default (reads from data/input/, writes to data/output/)
-make run
-# or:
-uv run python -m src
+mkdir -p /sgoinfre/dasantos/.local/share
+export XDG_DATA_HOME=/sgoinfre/dasantos/.local/share
 
-# With custom paths
-uv run python -m src \
-  --functions_definition data/input/functions_definition.json \
-  --input data/input/function_calling_tests.json \
-  --output data/output/function_calling_results.json
-```
+uv sync
+uv add accelerate
 
-### Other Makefile Targets
-
-```bash
-make flake          # Run flake8 + mypy with recommended flags
-make flake-strict   # Run flake8 + mypy --strict
-make debug         # Run with Python's pdb debugger
-make clean         # Remove __pycache__, .mypy_cache, *.pyc
 ```
 
 ---
 
-## Algorithm Explanation: Constrained Decoding
+## Running the Program
 
-Language models generate text **one token at a time**. At each step, the model produces a probability distribution (logits) over its entire vocabulary (~150 000+ tokens). Normally, the highest-scoring token is selected. The problem: small models are unreliable at producing structured output from prompting alone — succeeding as rarely as 30% of the time.
+### Default Paths
 
-**Constrained decoding** intervenes **before** token selection:
+Reads from `data/input/` and writes results to `data/output/`.
 
+```bash
+make run
 ```
+
+or
+
+```bash
+uv run python -m src
+```
+
+### Custom Paths
+
+```bash
+uv run python -m src \
+    --functions_definition data/input/functions_definition.json \
+    --input data/input/function_calling_tests.json \
+    --output data/output/function_calling_results.json
+```
+
+---
+
+## Additional Makefile Targets
+
+```bash
+make flake          # Run flake8 and mypy
+make flake-strict   # Run flake8 and mypy --strict
+make debug          # Run with pdb
+make clean          # Remove cache files and compiled Python artifacts
+```
+
+---
+
+## How Constrained Decoding Works
+
+Language models generate text **one token at a time**. At each step, the model produces a probability distribution (logits) over its vocabulary. Normally, the token with the highest probability is selected.
+
+Small models are often unreliable when generating structured outputs from prompting alone. Constrained decoding solves this by restricting which tokens may be selected during generation.
+
+```text
 Prompt → Tokenisation → Input IDs → LLM → Logits → [MASK] → Next Token
                                                       ↑
-                                           Set invalid tokens to -∞
+                                           Invalid tokens = -∞
 ```
 
-### Two-Phase Pipeline
+Any token deemed invalid for the current state is assigned a logit of **negative infinity**, making it impossible for the model to generate.
 
-**Phase 1 — Function Name Selection**
+### Phase 1 — Function Selection
 
-1. Build a prompt listing all available functions and asking the model to pick one.
-2. Encode the prompt to token IDs and pass through the LLM.
-3. At each generation step, compute the set of valid token IDs — those that are a prefix of at least one remaining valid function name.
-4. Set all other logit values to `-inf` (negative infinity).
-5. Select the highest remaining logit (greedy decoding).
-6. Repeat until a complete function name is formed or a stop token is reached.
+1. Build a prompt containing all available functions.
+2. Encode the prompt and run the model.
+3. Determine which tokens can continue a valid function name.
+4. Set all other token logits to `-inf`.
+5. Select the highest-scoring valid token.
+6. Repeat until a complete function name is generated.
 
-**Phase 2 — Argument Extraction**
+### Phase 2 — Argument Extraction
 
-1. Build a prompt asking the model to extract arguments as a JSON object.
-2. Run a **JSON state machine** that tracks the current parse state:
-   - `need_key` → allow only `"` to start a key
-   - `in_key` → allow only characters that continue a valid parameter name
-   - `need_colon` → allow only `:`
-   - `need_value_start` → allow only tokens valid for the parameter's type (digits for `number`, `"` for `string`, `t`/`f` for `boolean`, etc.)
-   - `in_value_string` → allow any printable character or closing `"`
-   - `in_value_number` → allow digits, `.`, and terminators (`,`, `}`)
-   - `need_comma_or_close` → allow `,` if more params remain, `}` if complete
-3. The result is always parseable, schema-compliant JSON.
+After selecting a function, the model extracts its arguments as JSON.
 
-### Why This Works
+A lightweight JSON state machine controls generation:
 
-By setting invalid tokens to `-inf` before `softmax`/`argmax`, those tokens can **never be selected**, regardless of model confidence. The model still drives semantic choices (which function fits, what the number is), but the structure is enforced externally.
+| State                 | Allowed Tokens                            |
+| --------------------- | ----------------------------------------- |
+| `need_key`            | `"`                                       |
+| `in_key`              | Characters matching valid parameter names |
+| `need_colon`          | `:`                                       |
+| `need_value_start`    | Tokens valid for the parameter type       |
+| `in_value_string`     | Printable characters or closing `"`       |
+| `in_value_number`     | Digits, `.`, `,`, `}`                     |
+| `need_comma_or_close` | `,` or `}`                                |
+
+This guarantees that every generated argument object is valid JSON and conforms to the selected function schema.
+
+---
+
+## Why It Works
+
+Constrained decoding separates **semantic reasoning** from **structural correctness**.
+
+The model remains responsible for:
+
+* Choosing the most appropriate function
+* Extracting argument values
+
+The decoder remains responsible for:
+
+* Enforcing valid function names
+* Enforcing valid JSON syntax
+* Enforcing schema compliance
+
+Because invalid tokens can never be selected, malformed JSON becomes impossible.
 
 ---
 
 ## Design Decisions
 
-| Decision | Rationale |
-|---|---|
-| **Pydantic for all models** | Required by spec; provides automatic validation and clear error messages |
-| **Two-phase decoding** | Separates concerns: first pick the function, then fill its arguments |
-| **Greedy decoding** | Deterministic and fast; appropriate for structured output tasks |
-| **State-machine JSON enforcer** | More robust than regex; handles all JSON types and edge cases |
-| **No dspy / transformers / outlines** | Forbidden by spec; builds the skill from first principles |
-| **`llm_sdk` encode/decode** | Used as allowed public API; vocabulary JSON used for constrained masking |
-| **Graceful error handling** | All errors logged to stderr; program never crashes unexpectedly |
+| Decision                                     | Reason                                                                     |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| Pydantic models                              | Automatic validation and clearer error reporting                           |
+| Two-phase decoding                           | Separates function selection from argument extraction                      |
+| Greedy decoding                              | Deterministic, fast, and sufficient for structured generation              |
+| JSON state machine                           | More reliable than regex-based validation                                  |
+| No external structured-generation frameworks | Complies with project constraints and demonstrates the underlying concepts |
+| `llm_sdk` encode/decode APIs                 | Uses only the allowed public interfaces                                    |
+| Graceful error handling                      | Prevents unexpected crashes and improves robustness                        |
 
 ---
 
-## Performance Analysis
+## Performance
 
-| Metric | Target | Achieved |
-|---|---|---|
-| Function selection accuracy | 90%+ | ~95% on provided examples |
-| JSON validity | 100% | 100% (enforced by state machine) |
-| Schema compliance | 100% | 100% (types coerced via pydantic) |
-| Processing speed | < 5 min | ~2–3 s per prompt on CPU |
+| Metric                      | Target      | Result                         |
+| --------------------------- | ----------- | ------------------------------ |
+| Function selection accuracy | > 90%       | ~95%                           |
+| JSON validity               | 100%        | 100%                           |
+| Schema compliance           | 100%        | 100%                           |
+| Processing time             | < 5 minutes | ~2–3 seconds per prompt on CPU |
 
-The constrained decoder eliminates invalid JSON entirely — the output file **can always be parsed** with `json.loads()`. Semantic accuracy (choosing the right function and the right argument values) depends on the model's understanding, which is generally strong even at 0.6B parameters for simple function-calling tasks.
-
----
-
-## Challenges Faced
-
-### 1. BPE Tokeniser Space Prefixes
-Tokenisers like the one used by Qwen prepend special space markers (`Ġ`, `▁`) to tokens. The constrained decoder must strip or normalise these when matching against valid strings. Handled via `.replace("\u0120", " ").replace("\u2581", " ")`.
-
-### 2. Partial JSON State Inference
-Determining the exact parse state from a partial JSON string without a full parser is tricky. The solution uses a lightweight state analyser (`_analyze_json_state`) that scans for known patterns (open/close quotes, colons, commas) to infer the current phase.
-
-### 3. Number Type Handling
-JSON doesn't distinguish `int` from `float`. The project spec uses `"number"` for both. We coerce all `number` parameters to `float` and `integer` to `int` post-parse.
-
-### 4. Missing llm_sdk at Lint Time
-The `llm_sdk` package is not on PyPI and is provided separately. We use `# type: ignore` annotations on SDK calls and `--ignore-missing-imports` in mypy to handle this cleanly.
-
-### 5. Vocabulary Size Mismatch
-The logits tensor size may differ from the number of entries in the vocabulary JSON (e.g., special tokens). All token ID lookups guard against `tid >= vocab_size`.
+The decoder guarantees syntactically valid and schema-compliant JSON. Overall semantic accuracy depends on the model's understanding of the prompt.
 
 ---
 
-## Testing Strategy
+## Challenges
+
+### BPE Tokenisation and Space Prefixes
+
+Qwen uses BPE tokenisation with special space markers such as `Ġ` and `▁`.
+
+These markers are normalised using:
+
+```python
+.replace("\u0120", " ").replace("\u2581", " ")
+```
+
+to ensure correct matching against constrained strings.
+
+### JSON State Detection
+
+Determining the parser state from partial output is non-trivial.
+
+A lightweight `_analyze_json_state()` routine tracks:
+
+* Quotes
+* Colons
+* Commas
+* Braces
+
+to infer the current generation state.
+
+### Numeric Types
+
+JSON does not distinguish between integers and floating-point numbers.
+
+To match the project schema:
+
+* `"number"` → `float`
+* `"integer"` → `int`
+
+Values are coerced after parsing.
+
+### Missing `llm_sdk` During Linting
+
+Since `llm_sdk` is provided externally and not available on PyPI:
+
+* `# type: ignore` is used where necessary
+* mypy runs with `--ignore-missing-imports`
+
+### Vocabulary Size Differences
+
+Some tokenizer vocabularies include special tokens that are absent from the exported vocabulary JSON.
+
+All token lookups validate:
+
+```python
+tid < vocab_size
+```
+
+before use.
+
+---
+
+## Testing
 
 ### Manual Testing
-1. Place `functions_definition.json` and `function_calling_tests.json` in `data/input/`
-2. Run `make run`
-3. Inspect `data/output/function_calling_results.json`
-4. Verify with `python -c "import json; json.load(open('data/output/function_calling_results.json'))"`
 
-### Edge Cases to Test
-- Empty string prompts
-- Very large numbers (`1e15`)
-- Special characters in strings (`"hello 'world'"`)
-- Ambiguous prompts (e.g., could match multiple functions)
-- Functions with a single parameter vs. multiple parameters
-- Boolean and null parameter types
-- Malformed input JSON files (missing fields, wrong types)
-- Missing input files entirely
+```bash
+make run
+```
+
+Then verify the generated output:
+
+```bash
+python -c "import json; json.load(open('data/output/function_calling_results.json'))"
+```
+
+### Suggested Edge Cases
+
+* Empty prompts
+* Very large numbers (`1e15`)
+* Strings containing quotes or special characters
+* Ambiguous prompts
+* Functions with a single parameter
+* Boolean and null values
+* Malformed input JSON
+* Missing input files
 
 ### Validation Script
+
 ```python
 import json
 
@@ -183,21 +285,25 @@ with open("data/output/function_calling_results.json") as f:
     results = json.load(f)
 
 with open("data/input/functions_definition.json") as f:
-    fns = {fn["name"]: fn for fn in json.load(f)}
+    functions = {fn["name"]: fn for fn in json.load(f)}
 
-for r in results:
-    assert r["name"] in fns, f"Unknown function: {r['name']}"
-    fn = fns[r["name"]]
-    for param, schema in fn["parameters"].items():
-        assert param in r["parameters"], f"Missing param {param}"
-    print(f"OK: {r['name']}({r['parameters']})")
+for result in results:
+    assert result["name"] in functions
+
+    schema = functions[result["name"]]
+
+    for parameter in schema["parameters"]:
+        assert parameter in result["parameters"]
+
+    print(f"OK: {result['name']}({result['parameters']})")
 ```
 
 ---
 
-## Example Usage
+## Example
 
-### Input: `data/input/function_calling_tests.json`
+### Input
+
 ```json
 [
   { "prompt": "What is the sum of 2 and 3?" },
@@ -206,28 +312,41 @@ for r in results:
 ]
 ```
 
-### Output: `data/output/function_calling_results.json`
+### Output
+
 ```json
 [
   {
     "prompt": "What is the sum of 2 and 3?",
     "name": "fn_add_numbers",
-    "parameters": { "a": 2.0, "b": 3.0 }
-  },
+    "parameters": {
+      "a": 2.0,
+      "b": 3.0
+    }
+  }
 ]
 ```
 
 ---
 
-## Resources
+## References
 
-### Documentation & Papers
-- [Qwen3 Model Card (Hugging Face)](https://huggingface.co/Qwen/Qwen3-0.6B)
-- [Outlines: Structured Generation](https://github.com/outlines-dev/outlines) — inspiration (not used directly)
-- [JSON Schema Specification](https://json-schema.org/)
-- [Pydantic v2 Documentation](https://docs.pydantic.dev/latest/)
-- [BPE Tokenisation Explained](https://huggingface.co/learn/nlp-course/chapter6/5)
-- [Constrained Decoding Survey (arXiv)](https://arxiv.org/abs/2406.06608)
+### Documentation
 
-### How AI Was Used
-All AI-generated content was reviewed, understood, tested, and adapted. No code was copied without full comprehension.
+* Qwen3 Model Card
+* JSON Schema Specification
+* Pydantic v2 Documentation
+* Hugging Face NLP Course — BPE Tokenisation
+* Constrained Decoding Survey (2024)
+
+### Related Work
+
+* Outlines (inspiration only; not used in this project)
+
+---
+
+## AI Usage
+
+AI-assisted tools were used during development for brainstorming, reviewing documentation, and discussing implementation approaches.
+
+All generated content was reviewed, understood, tested, and adapted before inclusion in the final project.

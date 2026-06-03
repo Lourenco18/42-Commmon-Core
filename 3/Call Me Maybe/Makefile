@@ -19,6 +19,7 @@ flake-strict:
 	python -m mypy src --strict
 
 clean:
+
 	rm -rf .venv 2>/dev/null || true
 	rm -f uv.lock 2>/dev/null || true
 	rm -rf data/output 2>/dev/null || true
