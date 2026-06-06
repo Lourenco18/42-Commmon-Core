@@ -12,7 +12,11 @@ SRCS    = $(SRCDIR)/main.c \
           $(SRCDIR)/log.c \
           $(SRCDIR)/monitor.c \
           $(SRCDIR)/coder.c \
-          $(SRCDIR)/sim.c
+          $(SRCDIR)/sim.c \
+          $(SRCDIR)/sim_init.c \
+          $(SRCDIR)/sim_stats.c \
+          $(SRCDIR)/pqueue_utils.c \
+          $(SRCDIR)/dongle_utils.c
 
 OBJDIR = obj
 OBJS    = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRCS))
