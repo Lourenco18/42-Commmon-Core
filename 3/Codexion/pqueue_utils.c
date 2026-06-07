@@ -6,11 +6,20 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:07:00 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/07 17:00:37 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/07 17:09:53 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
+
+int	comes_before(t_pq_node *a, t_pq_node *b)
+{
+	if (a->key < b->key)
+		return (1);
+	if (a->key == b->key && a->coder_id > b->coder_id)
+		return (1);
+	return (0);
+}
 
 static void	swap_nodes(t_pq_node *a, t_pq_node *b)
 {

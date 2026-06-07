@@ -55,12 +55,18 @@ All time values are in **milliseconds**. `scheduler` must be either `fifo` or `e
 ```bash
 # 5 coders, FIFO scheduling — easy test
 ./codexion 5 1400 200 100 100 3 100 fifo
+5      → 5 coders (threads) sentados à mesa
+1400   → burns out se passar 1400ms sem começar a compilar
+200    → cada compile demora 200ms (segura os dois dongles)
+100    → depois de compilar, debuga 100ms
+100    → depois de debugar, refactora 100ms
+3      → cada coder precisa de 3 compiles para sair com sucesso
+100    → após largar um dongle, este precisa de 100ms de cooldown
+fifo   → fila por ordem de chegada
 
 # 4 coders, EDF scheduling
 ./codexion 4 1000 150 100 50 5 80 edf
 
-# Edge case: single coder
-./codexion 1 2000 200 100 50 3 0 fifo
 
 # Burnout test (burnout must NOT happen here)
 ./codexion 3 2000 300 100 100 2 50 fifo

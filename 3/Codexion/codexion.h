@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:06:02 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/05 00:00:00 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/07 17:09:24 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,7 +106,7 @@ int			pq_push(t_pqueue *pq, long long key, int coder_id);
 int			pq_pop(t_pqueue *pq, t_pq_node *out);
 int			pq_peek(t_pqueue *pq, t_pq_node *out);
 int			pq_remove(t_pqueue *pq, int coder_id);
-
+int			comes_before(t_pq_node *a, t_pq_node *b);
 void		wait_one_ms(t_dongle *d);
 int			is_my_turn(t_dongle *d, int coder_id);
 int			try_acquire(t_dongle *d, t_coder *coder);
