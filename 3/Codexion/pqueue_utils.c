@@ -6,20 +6,11 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:07:00 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/05 00:00:00 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/07 17:00:04 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
-
-static int	comes_before(t_pq_node *a, t_pq_node *b)
-{
-	if (a->key < b->key)
-		return (1);
-	if (a->key == b->key && a->coder_id > b->coder_id)
-		return (1);
-	return (0);
-}
 
 static void	swap_nodes(t_pq_node *a, t_pq_node *b)
 {
@@ -37,7 +28,7 @@ void	pq_sift_up(t_pqueue *pq, int i)
 	while (i > 0)
 	{
 		parent = (i - 1) / 2;
-		if (!comes_before(&pq->nodes[i], &pq->nodes[parent]))
+		if (pq->nodes[parent].key <= pq->nodes[i].key)
 			break ;
 		swap_nodes(&pq->nodes[parent], &pq->nodes[i]);
 		i = parent;
@@ -56,10 +47,10 @@ void	pq_sift_down(t_pqueue *pq, int i)
 		right = 2 * i + 2;
 		smallest = i;
 		if (left < pq->size
-			&& comes_before(&pq->nodes[left], &pq->nodes[smallest]))
+			&& pq->nodes[left].key < pq->nodes[smallest].key)
 			smallest = left;
 		if (right < pq->size
-			&& comes_before(&pq->nodes[right], &pq->nodes[smallest]))
+			&& pq->nodes[right].key < pq->nodes[smallest].key)
 			smallest = right;
 		if (smallest == i)
 			break ;
