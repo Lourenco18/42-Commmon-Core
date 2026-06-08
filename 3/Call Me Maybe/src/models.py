@@ -32,8 +32,16 @@ class PromptEntry(BaseModel):
 
 class FunctionCallResult(BaseModel):
     prompt: str
-    name: str
-    parameters: Dict[str, Any]
+    fn_name: str
+    args: Dict[str, Any]
+
+    def model_dump(self, **kwargs):
+        d = super().model_dump(**kwargs)
+        return {
+            "prompt": d["prompt"],
+            "name": d["fn_name"],
+            "parameters": d["args"],
+        }
 
 
 class GenerationState(BaseModel):
@@ -96,16 +104,24 @@ VALID_VALUE_PREFIXES: Dict[str, List[str]] = {
 
 
 def coerce_value(value: Any, target_type: str) -> Any:
-    if target_type in ("number",):
+    if target_type == "number":
         return float(value)
     if target_type == "integer":
-        return int(value)
+        # FIX: float primeiro para lidar com "3.0" -> 3
+        return int(float(value))
     if target_type == "string":
         return str(value)
     if target_type == "boolean":
+        if isinstance(value, str):
+            if value.lower() in ("true", "1", "yes"):
+                return True
+            if value.lower() in ("false", "0", "no", ""):
+                return False
+            raise ValueError(f"Cannot coerce '{value}' to boolean")
         return bool(value)
     return value
 
 
 # Union type for parameter values
-ParameterValue = Union[float, int, str, bool, list[Any], dict[str, Any], None]
+ParameterValue = Union[float, int, str, bool, list[Any],
+                       dict[str, Any], None]

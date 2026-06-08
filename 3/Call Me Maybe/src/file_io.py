@@ -82,6 +82,9 @@ def load_prompts(path: str) -> Optional[List[PromptEntry]]:
 
     prompts: List[PromptEntry] = []
     for i, item in enumerate(raw):
+        # FIX: aceita tanto {"prompt": "..."} como strings simples
+        if isinstance(item, str):
+            item = {"prompt": item}
         try:
             prompts.append(PromptEntry.model_validate(item))
         except Exception as e:
@@ -99,17 +102,18 @@ def load_prompts(path: str) -> Optional[List[PromptEntry]]:
 
 
 def save_results(results: List[FunctionCallResult], path: str) -> bool:
-    output_dir = os.path.dirname(path)
-    if output_dir:
-        try:
-            os.makedirs(output_dir, exist_ok=True)
-        except OSError as e:
-            print(
-                "[ERROR] Could not create output directory '",
-                f"{output_dir}': {e}",
-                file=sys.stderr,
-            )
+    # FIX: só chama makedirs se houver diretório no path
+    output_dir = os.path.dirname(os.path.abspath(path))
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+    except OSError as e:
+        print(
+            f"[ERROR] Could not create output directory '{output_dir}': {e}",
+            file=sys.stderr,
+        )
+        return False
 
+    # FIX: serializa com os nomes corretos (fn_name, args) conforme o subject
     serializable = [r.model_dump() for r in results]
 
     try:
@@ -117,8 +121,7 @@ def save_results(results: List[FunctionCallResult], path: str) -> bool:
             json.dump(serializable, f, indent=2, ensure_ascii=False)
     except OSError as e:
         print(
-            "[ERROR] Could not create output directory '",
-            f"{output_dir}': {e}",
+            f"[ERROR] Could not write output file '{path}': {e}",
             file=sys.stderr,
         )
         return False

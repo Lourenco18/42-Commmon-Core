@@ -181,8 +181,8 @@ def run(args: CLIArgs) -> int:
 
         result = FunctionCallResult(
             prompt=prompt_text,
-            name=fn_name,
-            parameters=arguments,
+            fn_name=fn_name,   # FIX: era 'name'
+            args=arguments,    # FIX: era 'parameters'
         )
         results.append(result)
         print(f"[INFO] -> {fn_name}({arguments})")

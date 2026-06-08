@@ -1,25 +1,37 @@
 .PHONY: install run debug lint lint-strict clean
 
 install:
-	uv sync
+	mkdir -p /sgoinfre/dasantos/.cache/uv
+	export UV_CACHE_DIR=/sgoinfre/dasantos/.cache/uv
+
+	mkdir -p /sgoinfre/dasantos/tmp
+	export TMPDIR=/sgoinfre/dasantos/tmp
+
+	mkdir -p /sgoinfre/dasantos/.cache
+	export XDG_CACHE_HOME=/sgoinfre/dasantos/.cache
+
+	mkdir -p /sgoinfre/dasantos/.local/share
+	export XDG_DATA_HOME=/sgoinfre/dasantos/.local/share
 
 run:
+	uv sync
+	uv add accelerate
 	uv run python -m src
 
 debug:
 	uv run python -m pdb -m src
 
 flake:
-	python -m flake8 src
-	python -m mypy src --warn-return-any --warn-unused-ignores --ignore-missing-imports \
+	python3 -m flake8 src
+	python3 -m mypy src --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 		--disallow-untyped-defs --check-untyped-defs
 
 flake-strict:
-	python -m flake8 src
-	python -m mypy src --strict
+	python3 -m flake8 src
+	python3 -m mypy src --strict
 
 clean:
-
+	uv cache clean
 	rm -rf .venv 2>/dev/null || true
 	rm -f uv.lock 2>/dev/null || true
 	rm -rf data/output 2>/dev/null || true

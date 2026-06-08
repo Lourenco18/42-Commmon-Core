@@ -46,37 +46,6 @@ def build_argument_extraction_prompt(
     return prompt
 
 
-def get_valid_function_name_tokens(
-    generated_so_far: str,
-    function_names: List[str],
-    vocab: Vocabulary,
-) -> List[int]:
-    valid_ids: List[int] = []
-
-    # Find which function names are still possible given what's been generated
-    remaining_names = [
-        name for name in function_names
-        if name.startswith(generated_so_far)
-    ]
-
-    if not remaining_names:
-        return valid_ids
-
-    # For each token, check if it can continue at least one remaining name
-    for token_id, token_str in vocab.id_to_token.items():
-        stripped = token_str.lstrip(" \u0120\u2581")
-        candidate = generated_so_far + stripped
-
-        for name in remaining_names:
-            if name.startswith(candidate) or candidate.startswith(name):
-                # Valid if it advances toward a valid name
-                if name.startswith(candidate):
-                    valid_ids.append(token_id)
-                    break
-
-    return valid_ids
-
-
 def constrained_generate_function_name(
     prompt_ids: List[int],
     function_names: List[str],
@@ -249,10 +218,28 @@ def constrained_generate_arguments(
 
             # Detect value completion
             if ptype == "string":
-                # closing quote signals end of string
-                if clean.endswith('"') and not clean.endswith('\\"''"'):
-                    # append content without the closing quote
-                    value_str += clean[:-1] if len(clean) > 1 else ""
+                # Strip BPE leading space only on first token
+                if not value_str:
+                    clean = clean.lstrip(" ")
+                # Token is exactly a closing quote -> end of string
+                if clean == '"':
+                    value_tokens.append(next_token_id)
+                    current_ids.append(next_token_id)
+                    break
+                # Find first unescaped quote in token — cut there
+                cut = -1
+                ci = 0
+                while ci < len(clean):
+                    if clean[ci] == '\\':
+                        ci += 2
+                        continue
+                    if clean[ci] == '"':
+                        cut = ci
+                        break
+                    ci += 1
+                if cut >= 0:
+                    # Keep only content before the closing quote
+                    value_str += clean[:cut]
                     value_tokens.append(next_token_id)
                     current_ids.append(next_token_id)
                     break
