@@ -67,3 +67,23 @@ docker-test:
 	@command -v docker >/dev/null 2>&1 || { echo "docker not found; install Docker to use this target"; exit 1; }
 	@echo "Running tests inside Ubuntu container (will install valgrind inside container)..."
 	docker run --rm -v "$$PWD":/work -w /work ubuntu:22.04 bash -lc "apt-get update && apt-get install -y build-essential valgrind && make clean && make && valgrind --leak-check=full --show-leak-kinds=all ./codexion 5 1000 100 100 50 3 200 fifo"
+
+TIE_SRCS = test_tiebreaker.c test_tiebreaker_main.c \
+           pqueue.c pqueue_utils.c time_utils.c
+TIE_OBJS = $(patsubst %.c,$(OBJDIR)/tie_%.o,$(TIE_SRCS))
+ 
+$(OBJDIR)/tie_%.o: %.c
+	@mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+ 
+test_tie: $(TIE_OBJS)
+	$(CC) $(CFLAGS) -o test_tie $(TIE_OBJS)
+	./test_tie
+ 
+.PHONY: test_tie
+ 
+tie:
+	@python3 test_tie.py
+ 
+.PHONY: tie
+ 
