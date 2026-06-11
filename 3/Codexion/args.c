@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:05:51 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/11 00:00:00 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 19:46:57 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,62 +68,6 @@ static void	fill_sim(char **argv, t_sim *sim)
 	sim->time_to_refactor = (long long)atoi(argv[5]);
 	sim->n_compiles_required = atoi(argv[6]);
 	sim->dongle_cooldown = (long long)atoi(argv[7]);
-}
-
-static int	validate_limits(t_sim *sim)
-{
-	if (sim->n_coders < 1 || sim->n_coders > MAX_CODERS)
-	{
-		fprintf(stderr, "Error: n_coders must be between 1 and %d\n",
-			MAX_CODERS);
-		return (0);
-	}
-	if (sim->time_to_burnout < MIN_TIME_MS || sim->time_to_burnout > MAX_TIME_MS)
-	{
-		fprintf(stderr, "Error: time_to_burnout must be between %d and %d ms\n",
-			MIN_TIME_MS, MAX_TIME_MS);
-		return (0);
-	}
-	if (sim->time_to_compile < MIN_TIME_MS || sim->time_to_compile > MAX_TIME_MS)
-	{
-		fprintf(stderr, "Error: time_to_compile must be between %d and %d ms\n",
-			MIN_TIME_MS, MAX_TIME_MS);
-		return (0);
-	}
-	if (sim->time_to_debug < MIN_TIME_MS || sim->time_to_debug > MAX_TIME_MS)
-	{
-		fprintf(stderr, "Error: time_to_debug must be between %d and %d ms\n",
-			MIN_TIME_MS, MAX_TIME_MS);
-		return (0);
-	}
-	if (sim->time_to_refactor < MIN_TIME_MS
-		|| sim->time_to_refactor > MAX_TIME_MS)
-	{
-		fprintf(stderr,
-			"Error: time_to_refactor must be between %d and %d ms\n",
-			MIN_TIME_MS, MAX_TIME_MS);
-		return (0);
-	}
-	if (sim->n_compiles_required < 1
-		|| sim->n_compiles_required > MAX_COMPILES)
-	{
-		fprintf(stderr, "Error: n_compiles_required must be between 1 and %d\n",
-			MAX_COMPILES);
-		return (0);
-	}
-	if (sim->dongle_cooldown < 0 || sim->dongle_cooldown > MAX_TIME_MS)
-	{
-		fprintf(stderr, "Error: dongle_cooldown must be between 0 and %d ms\n",
-			MAX_TIME_MS);
-		return (0);
-	}
-	if (sim->time_to_compile >= sim->time_to_burnout)
-	{
-		fprintf(stderr,
-			"Error: time_to_compile must be less than time_to_burnout\n");
-		return (0);
-	}
-	return (1);
 }
 
 int	parse_args(int argc, char **argv, t_sim *sim)

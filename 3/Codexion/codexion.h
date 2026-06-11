@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:06:02 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/11 14:27:48 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 19:47:01 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,23 +20,29 @@
 # include <unistd.h>
 # include <sys/time.h>
 
-/* Scheduler modes */
-# define SCHED_FIFO_MODE		0
-# define SCHED_EDF_MODE			1
+typedef enum e_scheduler
+{
+	SCHED_FIFO_MODE,
+	SCHED_EDF_MODE
+}	t_scheduler;
 
-/* Coder states */
-# define STATE_WAITING			0
-# define STATE_COMPILING		1
-# define STATE_DEBUGGING		2
-# define STATE_REFACTORING		3
-# define STATE_BURNED_OUT		4
+typedef enum e_state
+{
+	STATE_WAITING,
+	STATE_COMPILING,
+	STATE_DEBUGGING,
+	STATE_REFACTORING,
+	STATE_BURNED_OUT
+}	t_state;
 
-# define MAX_CODERS				200
-# define MIN_TIME_MS			1
-# define MAX_TIME_MS			100000
-# define MAX_COMPILES			10000
-
-# define CODER_START_OFFSET		5
+typedef enum e_limits
+{
+	MAX_CODERS = 200,
+	MIN_TIME_MS = 1,
+	MAX_TIME_MS = 100000,
+	MAX_COMPILES = 10000,
+	CODER_START_OFFSET = 5
+}	t_limits;
 
 typedef struct s_pq_node	t_pq_node;
 typedef struct s_pqueue		t_pqueue;
@@ -70,15 +76,15 @@ struct s_dongle
 
 struct s_coder
 {
-	int			id;
-	int			left_dongle;
-	int			right_dongle;
-	int			compile_count;
-	int			state;
-	long long	last_compile_start;
-	long long	deadline;
-	pthread_t	thread;
-	t_sim		*sim;
+	int				id;
+	int				left_dongle;
+	int				right_dongle;
+	int				compile_count;
+	t_state			state;
+	long long		last_compile_start;
+	long long		deadline;
+	pthread_t		thread;
+	t_sim			*sim;
 };
 
 struct s_sim
@@ -90,7 +96,7 @@ struct s_sim
 	long long		time_to_refactor;
 	int				n_compiles_required;
 	long long		dongle_cooldown;
-	int				scheduler;
+	t_scheduler		scheduler;
 	t_coder			*coders;
 	t_dongle		*dongles;
 	pthread_t		monitor_thread;
@@ -98,18 +104,13 @@ struct s_sim
 	int				stopped;
 	int				burnout_coder_id;
 	pthread_mutex_t	log_mutex;
-	/*
-	** dongle_order_mutex: garante que apenas um coder de cada vez determina
-	** a ordem de aquisição dos seus dongles (primeiro/segundo). Sem este mutex,
-	** dois coders adjacentes poderiam tentar adquirir os mesmos dongles pela
-	** mesma ordem e entrar em deadlock ou starvation.
-	*/
 	pthread_mutex_t	dongle_order_mutex;
 	long long		start_time_ms;
 	long long		end_time_ms;
 };
 
 int			parse_args(int argc, char **argv, t_sim *sim);
+int			validate_limits(t_sim *sim);
 
 long long	get_time_ms(void);
 void		sleep_ms(long long ms);
@@ -134,6 +135,9 @@ int			dongle_acquire(t_dongle *d, t_coder *coder);
 void		dongle_release(t_dongle *d, t_coder *coder);
 
 void		log_state(t_sim *sim, int coder_id, const char *msg);
+
+int			do_debug(t_coder *coder);
+int			do_refactor(t_coder *coder);
 
 void		*monitor_routine(void *arg);
 int			sim_is_stopped(t_sim *sim);

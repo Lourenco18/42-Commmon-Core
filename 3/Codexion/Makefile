@@ -6,12 +6,14 @@ CFLAGS  = -Wall -Wextra -Werror -pthread
 SRCDIR  = .
 SRCS    = $(SRCDIR)/main.c \
           $(SRCDIR)/args.c \
+          $(SRCDIR)/args_validate.c \
           $(SRCDIR)/time_utils.c \
           $(SRCDIR)/pqueue.c \
           $(SRCDIR)/dongle.c \
           $(SRCDIR)/log.c \
           $(SRCDIR)/monitor.c \
           $(SRCDIR)/coder.c \
+          $(SRCDIR)/coder_actions.c \
           $(SRCDIR)/sim.c \
           $(SRCDIR)/sim_init.c \
           $(SRCDIR)/sim_stats.c \
