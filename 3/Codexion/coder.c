@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:05:59 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/11 14:33:15 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 14:44:12 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,7 +60,6 @@ static int	acquire_both(t_coder *coder, int first, int second)
 		dongle_release(&sim->dongles[first], coder);
 		return (0);
 	}
-	log_state(sim, coder->id, "has taken a dongle");
 	if (!dongle_acquire(&sim->dongles[second], coder))
 	{
 		dongle_release(&sim->dongles[first], coder);
@@ -73,6 +72,8 @@ static int	acquire_both(t_coder *coder, int first, int second)
 		return (0);
 	}
 	log_state(sim, coder->id, "has taken a dongle");
+	log_state(sim, coder->id, "has taken a dongle");
+	
 	return (1);
 }
 

@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:07:00 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/11 14:32:49 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 14:35:40 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ void	pq_sift_up(t_pqueue *pq, int i)
 	while (i > 0)
 	{
 		parent = (i - 1) / 2;
-		if (pq->nodes[i].key <= pq->nodes[parent].key)
+		if (!comes_before(&pq->nodes[i], &pq->nodes[parent]))
 			break ;
 		swap_nodes(&pq->nodes[parent], &pq->nodes[i]);
 		i = parent;
@@ -56,10 +56,10 @@ void	pq_sift_down(t_pqueue *pq, int i)
 		right = 2 * i + 2;
 		smallest = i;
 		if (left < pq->size
-			&& pq->nodes[left].key < pq->nodes[smallest].key)
+			&& comes_before(&pq->nodes[left], &pq->nodes[smallest]))
 			smallest = left;
 		if (right < pq->size
-			&& pq->nodes[right].key < pq->nodes[smallest].key)
+			&& comes_before(&pq->nodes[right], &pq->nodes[smallest]))
 			smallest = right;
 		if (smallest == i)
 			break ;
