@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:07:09 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/05 00:00:00 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 00:00:00 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,12 @@ static int	init_mutexes(t_sim *sim)
 		return (0);
 	if (pthread_mutex_init(&sim->log_mutex, NULL) != 0)
 	{
+		pthread_mutex_destroy(&sim->stop_mutex);
+		return (0);
+	}
+	if (pthread_mutex_init(&sim->dongle_order_mutex, NULL) != 0)
+	{
+		pthread_mutex_destroy(&sim->log_mutex);
 		pthread_mutex_destroy(&sim->stop_mutex);
 		return (0);
 	}
@@ -90,6 +96,7 @@ int	sim_init(t_sim *sim)
 		return (0);
 	if (!alloc_sim(sim))
 	{
+		pthread_mutex_destroy(&sim->dongle_order_mutex);
 		pthread_mutex_destroy(&sim->log_mutex);
 		pthread_mutex_destroy(&sim->stop_mutex);
 		return (0);
@@ -98,6 +105,7 @@ int	sim_init(t_sim *sim)
 	{
 		free(sim->dongles);
 		free(sim->coders);
+		pthread_mutex_destroy(&sim->dongle_order_mutex);
 		pthread_mutex_destroy(&sim->log_mutex);
 		pthread_mutex_destroy(&sim->stop_mutex);
 		return (0);

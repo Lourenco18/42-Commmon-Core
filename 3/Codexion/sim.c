@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:07:09 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/05 00:00:00 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 00:00:00 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,7 @@ void	sim_cleanup(t_sim *sim)
 	}
 	free(sim->dongles);
 	free(sim->coders);
+	pthread_mutex_destroy(&sim->dongle_order_mutex);
 	pthread_mutex_destroy(&sim->log_mutex);
 	pthread_mutex_destroy(&sim->stop_mutex);
 }

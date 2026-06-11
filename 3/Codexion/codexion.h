@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:06:02 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/07 17:09:24 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 14:27:48 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,13 +20,23 @@
 # include <unistd.h>
 # include <sys/time.h>
 
-# define SCHED_FIFO_MODE 0
-# define SCHED_EDF_MODE 1
-# define STATE_WAITING 0
-# define STATE_COMPILING 1
-# define STATE_DEBUGGING 2
-# define STATE_REFACTORING 3
-# define STATE_BURNED_OUT 4
+/* Scheduler modes */
+# define SCHED_FIFO_MODE		0
+# define SCHED_EDF_MODE			1
+
+/* Coder states */
+# define STATE_WAITING			0
+# define STATE_COMPILING		1
+# define STATE_DEBUGGING		2
+# define STATE_REFACTORING		3
+# define STATE_BURNED_OUT		4
+
+# define MAX_CODERS				200
+# define MIN_TIME_MS			1
+# define MAX_TIME_MS			100000
+# define MAX_COMPILES			10000
+
+# define CODER_START_OFFSET		5
 
 typedef struct s_pq_node	t_pq_node;
 typedef struct s_pqueue		t_pqueue;
@@ -88,6 +98,13 @@ struct s_sim
 	int				stopped;
 	int				burnout_coder_id;
 	pthread_mutex_t	log_mutex;
+	/*
+	** dongle_order_mutex: garante que apenas um coder de cada vez determina
+	** a ordem de aquisição dos seus dongles (primeiro/segundo). Sem este mutex,
+	** dois coders adjacentes poderiam tentar adquirir os mesmos dongles pela
+	** mesma ordem e entrar em deadlock ou starvation.
+	*/
+	pthread_mutex_t	dongle_order_mutex;
 	long long		start_time_ms;
 	long long		end_time_ms;
 };

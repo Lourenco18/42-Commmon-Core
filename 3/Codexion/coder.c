@@ -6,7 +6,7 @@
 /*   By: dasantos <dasantos@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/05/22 12:05:59 by dasantos          #+#    #+#             */
-/*   Updated: 2026/06/05 00:00:00 by dasantos         ###   ########.fr       */
+/*   Updated: 2026/06/11 14:33:15 by dasantos         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,11 @@ int	sim_is_stopped(t_sim *sim)
 	return (stopped);
 }
 
+/*
+** get_dongle_order: protegido por dongle_order_mutex para evitar que dois
+** coders adjacentes escolham os mesmos dongles ao mesmo tempo, eliminando
+** a corrida que causava burnout ou starvation.
+*/
 static void	get_dongle_order(t_coder *coder, int *first, int *second)
 {
 	int	left;
@@ -29,6 +34,7 @@ static void	get_dongle_order(t_coder *coder, int *first, int *second)
 
 	left = coder->left_dongle;
 	right = coder->right_dongle;
+	pthread_mutex_lock(&coder->sim->dongle_order_mutex);
 	if (left < right)
 	{
 		*first = left;
@@ -39,6 +45,7 @@ static void	get_dongle_order(t_coder *coder, int *first, int *second)
 		*first = right;
 		*second = left;
 	}
+	pthread_mutex_unlock(&coder->sim->dongle_order_mutex);
 }
 
 static int	acquire_both(t_coder *coder, int first, int second)
@@ -85,34 +92,54 @@ static int	do_compile(t_coder *coder)
 	log_state(sim, coder->id, "is compiling");
 	sleep_ms(sim->time_to_compile);
 	coder->compile_count++;
+	coder->state = STATE_WAITING;
 	dongle_release(&sim->dongles[second], coder);
 	dongle_release(&sim->dongles[first], coder);
+	return (1);
+}
+
+static int	do_debug(t_coder *coder)
+{
+	t_sim	*sim;
+
+	sim = coder->sim;
+	if (sim_is_stopped(sim))
+		return (0);
+	coder->state = STATE_DEBUGGING;
+	log_state(sim, coder->id, "is debugging");
+	sleep_ms(sim->time_to_debug);
+	return (1);
+}
+
+static int	do_refactor(t_coder *coder)
+{
+	t_sim	*sim;
+
+	sim = coder->sim;
+	if (sim_is_stopped(sim))
+		return (0);
+	coder->state = STATE_REFACTORING;
+	log_state(sim, coder->id, "is refactoring");
+	sleep_ms(sim->time_to_refactor);
 	return (1);
 }
 
 void	*coder_routine(void *arg)
 {
 	t_coder	*coder;
-	t_sim	*sim;
 
 	coder = (t_coder *)arg;
-	sim = coder->sim;
 	coder->state = STATE_WAITING;
-	while (!sim_is_stopped(sim))
+	sleep_ms((long long)(coder->id - 1) * CODER_START_OFFSET);
+	while (!sim_is_stopped(coder->sim))
 	{
 		coder->state = STATE_WAITING;
 		if (!do_compile(coder))
 			break ;
-		if (sim_is_stopped(sim))
+		if (!do_debug(coder))
 			break ;
-		coder->state = STATE_DEBUGGING;
-		log_state(sim, coder->id, "is debugging");
-		sleep_ms(sim->time_to_debug);
-		if (sim_is_stopped(sim))
+		if (!do_refactor(coder))
 			break ;
-		coder->state = STATE_REFACTORING;
-		log_state(sim, coder->id, "is refactoring");
-		sleep_ms(sim->time_to_refactor);
 	}
 	return (NULL);
 }

@@ -182,9 +182,6 @@ def constrained_generate_arguments(
         # For string values inject the opening quote too
         if ptype == "string":
             current_ids.extend(_encode_string_as_char_ids('"', vocab))
-            print(f"[DBG START] param={param_name}"
-                  f"context_tail={repr(chr(0))}",
-                  flush=True)
 
         # ── Let the LLM generate the value tokens ──────────────────────────
         value_tokens: List[int] = []
@@ -247,9 +244,6 @@ def constrained_generate_arguments(
                     current_ids.append(next_token_id)
                     break
                 value_str += clean
-                print(f"[DBG] tok={repr(token_str)} clean={repr(clean)}"
-                      f"val={repr(value_str)}",
-                      flush=True)
             elif ptype in ("number", "integer"):
                 # A comma or closing brace ends the number
                 stripped = clean.strip()
@@ -978,12 +972,6 @@ def select_function_and_extract_args(
             and isinstance(arg_prompt_ids[0], list)
         ):
             arg_prompt_ids = arg_prompt_ids[0]
-
-    # Try heuristic extraction first — more reliable for structured prompts
-    heuristic_args = _heuristic_extract_arguments(selected_name, user_prompt)
-    if heuristic_args is not None:
-        finalized = _finalize_parameters(selected_fn, heuristic_args)
-        return selected_name, finalized
 
     arguments = constrained_generate_arguments(
         arg_prompt_ids, selected_fn, vocab, get_logits_fn
