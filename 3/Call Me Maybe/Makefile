@@ -12,10 +12,10 @@ install:
 
 	mkdir -p /sgoinfre/dasantos/.local/share
 	export XDG_DATA_HOME=/sgoinfre/dasantos/.local/share
-
-run:
 	uv sync
 	uv add accelerate
+
+run:
 	uv run python -m src
 
 debug:
