@@ -1,17 +1,6 @@
 .PHONY: install run debug lint lint-strict clean
 
 install:
-	mkdir -p /sgoinfre/dasantos/.cache/uv
-	export UV_CACHE_DIR=/sgoinfre/dasantos/.cache/uv
-
-	mkdir -p /sgoinfre/dasantos/tmp
-	export TMPDIR=/sgoinfre/dasantos/tmp
-
-	mkdir -p /sgoinfre/dasantos/.cache
-	export XDG_CACHE_HOME=/sgoinfre/dasantos/.cache
-
-	mkdir -p /sgoinfre/dasantos/.local/share
-	export XDG_DATA_HOME=/sgoinfre/dasantos/.local/share
 	uv sync
 	uv add accelerate
 
