@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum.*
+*This project has been created as part of the 42 curriculum by <login1>[, <login2>...].*
 
 # Pac-Man
 
@@ -24,6 +24,19 @@ Key features:
 - Python 3.10 or later
 - `pip` package manager
 - The `mazegenerator` wheel included in this repository (`Pac-Man/mazegenerator-00001-py3-none-any.whl`)
+
+> **Check your Python version first**: `python3 --version`. On macOS,
+> the pre-installed system `python3` is often an old 3.9.x — too old to
+> even import the assigned `mazegenerator` package. If so, install a
+> newer interpreter and use it explicitly:
+> ```bash
+> brew install python@3.12          # or use pyenv
+> python3.12 -m pip install -r requirements.txt
+> python3.12 -m pip install Pac-Man/mazegenerator-00001-py3-none-any.whl
+> python3.12 pac-man.py config.json
+> ```
+> The game itself checks the interpreter version on startup and exits
+> with a clear message (instead of a crash) if it's below 3.10.
 
 ### Installation
 
@@ -171,12 +184,14 @@ grid = mg.maze  # list[list[int]], each value is a bitmask
 ```
 
 - **`perfect=False`**: produces corridors with loops, suitable for Pac-Man (multiple paths, no dead-ends-only maze).
-- **Bitmask encoding**: each cell is an integer where `bit0=North open, bit1=East open, bit2=South open, bit3=West open`. A wall exists when the corresponding bit is **not** set.
+- **Bitmask encoding**: each cell is an integer where `bit0=North, bit1=East, bit2=South, bit3=West`. A **set** bit means a wall is present in that direction (verified empirically against the assigned package); a clear bit means the corridor is open.
 - **Level 1**: uses the fixed `seed` from config for reproducibility.
 - **Subsequent levels**: use `random.randint(0, 2^32-1)` for variety.
 - **Failure handling**: if `MazeGenerator` raises any exception, it is caught, logged, and propagated cleanly without a traceback reaching the user.
 
 The wrapper in `src/maze.py` adapts the raw grid, ensuring the row/column ordering is consistent with the renderer and entity system.
+
+**Robustness note**: the assigned generator occasionally produces a handful of cells that end up walled off from the rest of the maze (normal for a `perfect=False` maze with random extra wall removal). To guarantee every level is always fully completable, pacgums are only placed in cells reachable (via BFS over the maze corridors) from the player's starting position.
 
 ---
 
@@ -255,6 +270,32 @@ src/
 | `highscore.py` | Load/save JSON highscores; validate names and scores |
 | `renderer.py` | All pygame drawing (maze, entities, menus, HUD) |
 | `game.py` | Event loop, state transitions, window management |
+
+---
+
+## Project Packaging
+
+A PyInstaller spec (`pacman.spec`, at the repository root) builds a
+standalone one-file executable that bundles the game and its assets:
+
+```bash
+make package
+# or
+pip install pyinstaller
+pyinstaller --noconfirm pacman.spec
+```
+
+The executable is produced in `dist/pacman` (build artefacts in
+`build/` and `dist/` are intentionally untracked — see `.gitignore`).
+
+To publish it as a free, unlisted build:
+1. Run `make package` to produce `dist/pacman`.
+2. Create an [itch.io](https://itch.io) project, set visibility to
+   "restricted" (unlisted) and the price to "free/name your own price".
+3. Upload `dist/pacman` (or zip the `dist/` folder) either through the
+   web uploader or with the [butler](https://itch.io/docs/butler/) CLI:
+   `butler push dist/ <user>/<project>:linux`.
+4. Share the unlisted page link for peer-review/demonstration purposes.
 
 ---
 

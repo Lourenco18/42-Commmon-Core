@@ -5,11 +5,11 @@ Handles drawing the maze, entities, HUD, menus, and all UI screens.
 
 import math
 import logging
-from typing import Optional
 
 import pygame
 
-from src.entities import Ghost, GhostState, Player
+from src.entities import GhostState
+from src.highscore import HighscoreEntry
 from src.level import Level
 
 logger = logging.getLogger(__name__)
@@ -58,9 +58,12 @@ class Renderer:
         self.screen: pygame.Surface = screen
         self.cell_size: int = CELL_SIZE
         pygame.font.init()
-        self.font_large: pygame.font.Font = pygame.font.SysFont("monospace", 36, bold=True)
-        self.font_med: pygame.font.Font = pygame.font.SysFont("monospace", 24, bold=True)
-        self.font_small: pygame.font.Font = pygame.font.SysFont("monospace", 16)
+        self.font_large: pygame.font.Font = pygame.font.SysFont(
+            "monospace", 36, bold=True)
+        self.font_med: pygame.font.Font = pygame.font.SysFont(
+            "monospace", 24, bold=True)
+        self.font_small: pygame.font.Font = pygame.font.SysFont(
+            "monospace", 16)
         self._pacman_angle: float = 0.0
         self._mouth_open: float = 0.3   # radians, animates
         self._mouth_dir: int = 1
@@ -83,7 +86,8 @@ class Renderer:
         self._draw_player(level)
         self._draw_hud(level)
 
-    def draw_main_menu(self, selected: int, highscores: list[object]) -> None:
+    def draw_main_menu(self, selected: int,
+                       highscores: list[HighscoreEntry]) -> None:
         """Draw the main menu screen.
 
         Args:
@@ -100,14 +104,17 @@ class Renderer:
 
         # Show top 3 scores as a teaser
         if highscores:
-            self._draw_centered("── Top Scores ──", self.font_small, (150, 150, 150), y=380)
+            self._draw_centered(
+                "── Top Scores ──", self.font_small, (150, 150, 150), y=380)
             for j, entry in enumerate(highscores[:3]):
-                text = f"{j + 1}. {entry.name:<10} {entry.score:>8}"  # type: ignore[attr-defined]
-                self._draw_centered(text, self.font_small, (180, 180, 120), y=402 + j * 20)
+                text = f"{j + 1}. {entry.name:<10} {entry.score:>8}"
+                self._draw_centered(
+                    text, self.font_small, (180, 180, 120), y=402 + j * 20)
 
-        self._draw_centered("↑↓ Navigate   ENTER Select", self.font_small, (100, 100, 100), y=500)
+        self._draw_centered("↑↓ Navigate   ENTER Select",
+                            self.font_small, (100, 100, 100), y=500)
 
-    def draw_highscores(self, entries: list[object]) -> None:
+    def draw_highscores(self, entries: list[HighscoreEntry]) -> None:
         """Draw the highscore table screen.
 
         Args:
@@ -119,13 +126,15 @@ class Renderer:
             self._draw_centered("No scores yet!", self.font_med, WHITE, y=200)
         else:
             header = f"{'Rank':<5} {'Name':<12} {'Score':>8}"
-            self._draw_centered(header, self.font_small, (150, 200, 150), y=110)
+            self._draw_centered(
+                header, self.font_small, (150, 200, 150), y=110)
             for i, entry in enumerate(entries):
                 color = YELLOW if i == 0 else WHITE
-                line = f"{i + 1:<5} {entry.name:<12} {entry.score:>8}"  # type: ignore[attr-defined]
-                self._draw_centered(line, self.font_med if i < 3 else self.font_small,
-                                    color, y=136 + i * 30)
-        self._draw_centered("Press ESC or ENTER to return", self.font_small, (100, 100, 100), y=510)
+                line = f"{i + 1:<5} {entry.name:<12} {entry.score:>8}"
+                font = self.font_med if i < 3 else self.font_small
+                self._draw_centered(line, font, color, y=136 + i * 30)
+        self._draw_centered("Press ESC or ENTER to return",
+                            self.font_small, (100, 100, 100), y=510)
 
     def draw_instructions(self) -> None:
         """Draw the instructions/controls screen."""
@@ -141,7 +150,7 @@ class Renderer:
             "",
             "── Cheat Mode (for evaluation) ──",
             "I  : Toggle Invincibility",
-            "S  : Skip Level",
+            "X  : Skip Level",
             "F  : Freeze/Unfreeze Ghosts",
             "L  : Add Extra Life",
             "B  : Toggle Speed Boost",
@@ -149,7 +158,8 @@ class Renderer:
         for i, line in enumerate(lines):
             color = (200, 200, 100) if line.startswith("──") else WHITE
             self._draw_centered(line, self.font_small, color, y=110 + i * 26)
-        self._draw_centered("Press ESC or ENTER to return", self.font_small, (100, 100, 100), y=510)
+        self._draw_centered("Press ESC or ENTER to return",
+                            self.font_small, (100, 100, 100), y=510)
 
     def draw_pause(self, level: Level) -> None:
         """Draw the pause overlay.
@@ -162,8 +172,16 @@ class Renderer:
         overlay.fill((0, 0, 0, 160))
         self.screen.blit(overlay, (0, 0))
         self._draw_title("PAUSED", WHITE, y=180)
-        self._draw_centered("ENTER / P  → Resume", self.font_med, YELLOW, y=260)
-        self._draw_centered("ESC        → Main Menu", self.font_med, WHITE, y=304)
+        self._draw_centered(
+            "ENTER / P  → Resume",
+            self.font_med,
+            YELLOW,
+            y=260)
+        self._draw_centered(
+            "ESC        → Main Menu",
+            self.font_med,
+            WHITE,
+            y=304)
 
     def draw_name_entry(self, score: int, name_buf: str, prompt: str) -> None:
         """Draw the name entry screen after win/loss.
@@ -175,8 +193,13 @@ class Renderer:
         """
         self.screen.fill(BLACK)
         self._draw_title(prompt, YELLOW, y=100)
-        self._draw_centered(f"Final Score: {score}", self.font_med, WHITE, y=190)
-        self._draw_centered("Enter your name:", self.font_med, (180, 180, 180), y=240)
+        self._draw_centered(
+            f"Final Score: {score}",
+            self.font_med,
+            WHITE,
+            y=190)
+        self._draw_centered(
+            "Enter your name:", self.font_med, (180, 180, 180), y=240)
 
         # Input box
         box_w, box_h = 260, 42
@@ -187,7 +210,8 @@ class Renderer:
         name_surf = self.font_med.render(name_buf + "_", True, WHITE)
         self.screen.blit(name_surf, (bx + 10, by + 7))
 
-        self._draw_centered("ENTER to confirm", self.font_small, (120, 120, 120), y=340)
+        self._draw_centered(
+            "ENTER to confirm", self.font_small, (120, 120, 120), y=340)
 
     def draw_game_over(self, score: int) -> None:
         """Draw the game-over screen briefly.
@@ -208,7 +232,11 @@ class Renderer:
         self.screen.fill(BLACK)
         self._draw_title("YOU WIN!", YELLOW, y=160)
         self._draw_centered("Congratulations!", self.font_med, WHITE, y=240)
-        self._draw_centered(f"Final Score: {score}", self.font_med, YELLOW, y=280)
+        self._draw_centered(
+            f"Final Score: {score}",
+            self.font_med,
+            YELLOW,
+            y=280)
 
     # ── Internal helpers ────────────────────────────────────────────────────
 
@@ -246,7 +274,6 @@ class Renderer:
             level: Current level.
         """
         maze = level.maze
-        cs = self.cell_size
         wall_thickness = 3
 
         for r in range(maze.height):
@@ -255,19 +282,27 @@ class Renderer:
                 pygame.draw.rect(self.screen, CORRIDOR_COLOR, rect)
 
                 cell = maze.grid[r][c]
-                # Draw walls on sides that have no passage
-                if not (cell & 1):  # N wall
-                    pygame.draw.line(self.screen, WALL_COLOR,
-                                     (rect.left, rect.top), (rect.right, rect.top), wall_thickness)
-                if not (cell & 2):  # E wall
-                    pygame.draw.line(self.screen, WALL_COLOR,
-                                     (rect.right, rect.top), (rect.right, rect.bottom), wall_thickness)
-                if not (cell & 4):  # S wall
-                    pygame.draw.line(self.screen, WALL_COLOR,
-                                     (rect.left, rect.bottom), (rect.right, rect.bottom), wall_thickness)
-                if not (cell & 8):  # W wall
-                    pygame.draw.line(self.screen, WALL_COLOR,
-                                     (rect.left, rect.top), (rect.left, rect.bottom), wall_thickness)
+                # A set bit means a wall is present in that direction.
+                if cell & 1:  # N wall
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (rect.left, rect.top), (rect.right, rect.top),
+                        wall_thickness)
+                if cell & 2:  # E wall
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (rect.right, rect.top), (rect.right, rect.bottom),
+                        wall_thickness)
+                if cell & 4:  # S wall
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (rect.left, rect.bottom), (rect.right, rect.bottom),
+                        wall_thickness)
+                if cell & 8:  # W wall
+                    pygame.draw.line(
+                        self.screen, WALL_COLOR,
+                        (rect.left, rect.top), (rect.left, rect.bottom),
+                        wall_thickness)
 
     def _draw_pacgums(self, level: Level) -> None:
         """Draw uneaten pacgums.
@@ -281,7 +316,9 @@ class Renderer:
                 rect = self._cell_rect(pg.row, pg.col)
                 cx = rect.centerx
                 cy = rect.centery
-                pygame.draw.circle(self.screen, PACGUM_COLOR, (cx, cy), max(2, r))
+                pygame.draw.circle(
+                    self.screen, PACGUM_COLOR, (cx, cy), max(
+                        2, r))
 
     def _draw_super_pacgums(self, level: Level, tick: int) -> None:
         """Draw uneaten super-pacgums (pulsing).
@@ -327,9 +364,12 @@ class Renderer:
             pygame.draw.rect(self.screen, color,
                              (cx - r, cy - r // 4, r * 2, r + r // 4))
             # Eyes
-            eye_color = WHITE if ghost.state != GhostState.EDIBLE else (200, 50, 50)
-            pygame.draw.circle(self.screen, eye_color, (cx - r // 3, cy - r // 3), r // 5)
-            pygame.draw.circle(self.screen, eye_color, (cx + r // 3, cy - r // 3), r // 5)
+            eye_color = WHITE if ghost.state != GhostState.EDIBLE else (
+                200, 50, 50)
+            pygame.draw.circle(
+                self.screen, eye_color, (cx - r // 3, cy - r // 3), r // 5)
+            pygame.draw.circle(
+                self.screen, eye_color, (cx + r // 3, cy - r // 3), r // 5)
 
     def _draw_player(self, level: Level) -> None:
         """Draw Pac-Man.
@@ -357,7 +397,7 @@ class Renderer:
         color = YELLOW if not p.invincible else (180, 255, 180)
 
         # Draw filled pie / arc approximation
-        points = [(cx, cy)]
+        points: list[tuple[float, float]] = [(float(cx), float(cy))]
         steps = 30
         for i in range(steps + 1):
             a = start_angle + (end_angle - start_angle) * i / steps
@@ -376,14 +416,18 @@ class Renderer:
         p = level.player
         w = self.screen.get_width()
         pygame.draw.rect(self.screen, HUD_BG, (0, 0, w, HUD_HEIGHT))
-        pygame.draw.line(self.screen, WALL_COLOR, (0, HUD_HEIGHT), (w, HUD_HEIGHT), 2)
+        pygame.draw.line(self.screen, WALL_COLOR,
+                         (0, HUD_HEIGHT), (w, HUD_HEIGHT), 2)
 
         score_surf = self.font_med.render(f"Score: {p.score}", True, YELLOW)
-        lives_surf = self.font_med.render(f"Lives: {p.lives}", True, (200, 80, 80))
-        level_surf = self.font_small.render(f"Level {level.level_index + 1}", True, WHITE)
+        lives_surf = self.font_med.render(
+            f"Lives: {p.lives}", True, (200, 80, 80))
+        level_surf = self.font_small.render(
+            f"Level {level.level_index + 1}", True, WHITE)
         time_val = max(0, int(level.time_remaining))
         time_color = (230, 60, 60) if time_val <= 15 else WHITE
-        time_surf = self.font_med.render(f"Time: {time_val}s", True, time_color)
+        time_surf = self.font_med.render(
+            f"Time: {time_val}s", True, time_color)
 
         self.screen.blit(score_surf, (10, 8))
         self.screen.blit(lives_surf, (w // 2 - 60, 8))
@@ -397,10 +441,12 @@ class Renderer:
         if p.speed_boost:
             cheats.append("SPD")
         if cheats:
-            c_surf = self.font_small.render(" ".join(cheats), True, (100, 255, 100))
+            c_surf = self.font_small.render(
+                " ".join(cheats), True, (100, 255, 100))
             self.screen.blit(c_surf, (10, 30))
 
-    def _draw_title(self, text: str, color: tuple[int, int, int], y: int) -> None:
+    def _draw_title(self, text: str,
+                    color: tuple[int, int, int], y: int) -> None:
         """Draw a large centered title.
 
         Args:
@@ -427,7 +473,8 @@ class Renderer:
         self.screen.blit(surf, (x, y))
 
     @staticmethod
-    def compute_window_size(maze_width: int, maze_height: int) -> tuple[int, int]:
+    def compute_window_size(
+            maze_width: int, maze_height: int) -> tuple[int, int]:
         """Compute required window size for a given maze.
 
         Args:

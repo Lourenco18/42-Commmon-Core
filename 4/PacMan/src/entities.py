@@ -1,5 +1,6 @@
 """Game entities: Player, Ghost, Pacgum, SuperPacgum."""
 import logging
+import math
 import random
 from enum import Enum, auto
 
@@ -59,7 +60,9 @@ class Player:
 
     def update(self, maze: Maze) -> None:
         """Advance player by one frame."""
-        self.move_interval = self.FAST_INTERVAL if self.speed_boost else self.BASE_INTERVAL
+        self.move_interval = (
+            self.FAST_INTERVAL if self.speed_boost else self.BASE_INTERVAL
+        )
         self.move_timer += 1
         if self.move_timer < self.move_interval:
             return
@@ -81,7 +84,8 @@ class Ghost:
     RESPAWN_DELAY: int = 300
     EDIBLE_DURATION: int = 360
 
-    def __init__(self, row: int, col: int, corner_row: int, corner_col: int, color_name: str) -> None:
+    def __init__(self, row: int, col: int, corner_row: int,
+                 corner_col: int, color_name: str) -> None:
         """Initialize ghost."""
         self.row = row
         self.col = col
@@ -146,16 +150,17 @@ class Ghost:
         if self.state == GhostState.CHASING:
             def key(pos: tuple[int, int]) -> float:
                 dr, dc = pos[0] - player_row, pos[1] - player_col
-                return (dr*dr + dc*dc)**0.5 + random.uniform(0, 1.5)
+                return math.sqrt(dr * dr + dc * dc) + random.uniform(0, 1.5)
         else:
             def key(pos: tuple[int, int]) -> float:
                 dr, dc = pos[0] - player_row, pos[1] - player_col
-                return -((dr*dr + dc*dc)**0.5) + random.uniform(0, 1.5)
+                return -math.sqrt(dr * dr + dc * dc) + random.uniform(0, 1.5)
         self.row, self.col = min(neighbours, key=key)
 
 
 class Pacgum:
     """Small collectible dot."""
+
     def __init__(self, row: int, col: int) -> None:
         """Initialize pacgum."""
         self.row = row
@@ -165,6 +170,7 @@ class Pacgum:
 
 class SuperPacgum:
     """Power pellet."""
+
     def __init__(self, row: int, col: int) -> None:
         """Initialize super-pacgum."""
         self.row = row

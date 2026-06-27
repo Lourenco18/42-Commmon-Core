@@ -9,6 +9,17 @@ The program takes exactly one argument: a path to a JSON configuration file.
 import logging
 import sys
 
+MIN_PYTHON: tuple[int, int] = (3, 10)
+
+if sys.version_info < MIN_PYTHON:
+    sys.exit(
+        "Error: this project requires Python "
+        f"{MIN_PYTHON[0]}.{MIN_PYTHON[1]} or later "
+        f"(running on Python {sys.version_info.major}."
+        f"{sys.version_info.minor}).\n"
+        "Use a newer interpreter, e.g.: python3.10 pac-man.py config.json"
+    )
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",

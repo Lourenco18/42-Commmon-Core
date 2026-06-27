@@ -15,7 +15,7 @@ from src.config import Config
 from src.entities import DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT
 from src.highscore import HighscoreSystem
 from src.level import Level
-from src.renderer import Renderer, CELL_SIZE, HUD_HEIGHT
+from src.renderer import Renderer
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,8 @@ class Game:
             config: Validated game configuration.
         """
         self.config: Config = config
-        self.highscores: HighscoreSystem = HighscoreSystem(config.highscore_filename)
+        self.highscores: HighscoreSystem = HighscoreSystem(
+            config.highscore_filename)
 
         pygame.init()
         # Start with a minimum-size window; resized when a level loads
@@ -83,7 +84,7 @@ class Game:
             (MIN_WIN_WIDTH, MIN_WIN_HEIGHT), pygame.RESIZABLE
         )
         pygame.display.set_caption("Pac-Man")
-        self.clock: pygame.Clock = pygame.time.Clock()
+        self.clock: pygame.time.Clock = pygame.time.Clock()
         self.renderer: Renderer = Renderer(self.screen)
 
         self.state: GameState = GameState.MAIN_MENU
@@ -92,6 +93,7 @@ class Game:
         self.menu_selection: int = 0
         self.name_buffer: str = ""
         self.final_score: int = 0
+        self._victory: bool = False
         self.tick: int = 0
         self._end_timer: int = 0   # brief delay before name entry prompt
 
@@ -225,7 +227,8 @@ class Game:
         elif key == pygame.K_BACKSPACE:
             self.name_buffer = self.name_buffer[:-1]
         else:
-            if len(self.name_buffer) < 10 and (unicode.isalnum() or unicode == " "):
+            if len(self.name_buffer) < 10 and (
+                    unicode.isalnum() or unicode == " "):
                 self.name_buffer += unicode
 
     # ── Update ──────────────────────────────────────────────────────────────
@@ -258,6 +261,7 @@ class Game:
         if self.level_index >= len(self.config.levels):
             logger.info("All levels completed! Final score: %d", score)
             self.final_score = score
+            self._victory = True
             self.state = GameState.VICTORY
             self._end_timer = FPS * 2
             self.level = None
@@ -269,6 +273,7 @@ class Game:
         """Handle game over condition."""
         assert self.level is not None
         self.final_score = self.level.player.score
+        self._victory = False
         logger.info("Game over. Final score: %d", self.final_score)
         self.state = GameState.GAME_OVER
         self._end_timer = FPS * 2
@@ -279,7 +284,8 @@ class Game:
     def _draw(self) -> None:
         """Render the current state to the screen."""
         if self.state == GameState.MAIN_MENU:
-            self.renderer.draw_main_menu(self.menu_selection, self.highscores.get_top(3))
+            self.renderer.draw_main_menu(
+                self.menu_selection, self.highscores.get_top(3))
         elif self.state == GameState.PLAYING and self.level is not None:
             self.renderer.draw_game(self.level, self.tick)
         elif self.state == GameState.PAUSED and self.level is not None:
@@ -289,8 +295,9 @@ class Game:
         elif self.state == GameState.INSTRUCTIONS:
             self.renderer.draw_instructions()
         elif self.state == GameState.NAME_ENTRY:
-            prompt = "VICTORY!" if self.final_score > 0 else "GAME OVER"
-            self.renderer.draw_name_entry(self.final_score, self.name_buffer, prompt)
+            prompt = "VICTORY!" if self._victory else "GAME OVER"
+            self.renderer.draw_name_entry(
+                self.final_score, self.name_buffer, prompt)
         elif self.state == GameState.GAME_OVER:
             self.renderer.draw_game_over(self.final_score)
         elif self.state == GameState.VICTORY:

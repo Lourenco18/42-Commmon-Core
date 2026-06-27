@@ -1,10 +1,13 @@
 {
+    # Pac-Man configuration file.
+    # Lines starting with '#' (or '//') are comments and are ignored.
     "highscore_filename": "data/highscores.json",
     "lives": 3,
     "pacgum": 42,
     "points_per_pacgum": 10,
     "points_per_super_pacgum": 50,
     "points_per_ghost": 200,
+    // Fixed seed used for level 1 only; later levels are random.
     "seed": 42,
     "level_max_time": 90,
     "level": [

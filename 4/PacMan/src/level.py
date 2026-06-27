@@ -13,6 +13,7 @@ GHOST_COLORS: list[str] = ["red", "pink", "cyan", "orange"]
 
 class Level:
     """Single game level state."""
+
     def __init__(self, config: Config, level_index: int, player_lives: int,
                  player_score: int, seed: Optional[int] = None) -> None:
         """Initialize level."""
@@ -28,7 +29,10 @@ class Level:
         try:
             self.maze: Maze = generate_maze(self.width, self.height, seed)
         except RuntimeError as exc:
-            logger.error("Level %d maze generation failed: %s", level_index, exc)
+            logger.error(
+                "Level %d maze generation failed: %s",
+                level_index,
+                exc)
             raise
 
         center_row = self.maze.height // 2
@@ -37,29 +41,52 @@ class Level:
         self.player.score = player_score
 
         corners = [
-            (0, 0), (0, self.maze.width - 1),
-            (self.maze.height - 1, 0), (self.maze.height - 1, self.maze.width - 1),
+            (0, 0),
+            (0, self.maze.width - 1),
+            (self.maze.height - 1, 0),
+            (self.maze.height - 1, self.maze.width - 1),
         ]
         self.ghosts: list[Ghost] = [
-            Ghost(r, c, r, c, GHOST_COLORS[i]) for i, (r, c) in enumerate(corners)
+            Ghost(r, c, r, c, GHOST_COLORS[i])
+            for i, (r, c) in enumerate(corners)
         ]
         self.pacgums: list[Pacgum] = []
         self.super_pacgums: list[SuperPacgum] = []
         self._place_items()
 
+    def _reachable_cells(self, start: tuple[int, int]) -> set[tuple[int, int]]:
+        """Return all cells reachable from `start` via maze corridors.
+
+        The assigned A-Maze-ing generator can occasionally produce a few
+        cells that are walled off from the rest of the maze. Restricting
+        pacgum placement to this reachable set guarantees the level can
+        always be fully cleared by the player.
+        """
+        visited: set[tuple[int, int]] = {start}
+        queue: list[tuple[int, int]] = [start]
+        while queue:
+            cur = queue.pop()
+            for nxt in self.maze.neighbours(*cur):
+                if nxt not in visited:
+                    visited.add(nxt)
+                    queue.append(nxt)
+        return visited
+
     def _place_items(self) -> None:
         """Place pacgums and super-pacgums."""
         corner_cells = {
-            (0, 0), (0, self.maze.width - 1),
-            (self.maze.height - 1, 0), (self.maze.height - 1, self.maze.width - 1),
+            (0, 0),
+            (0, self.maze.width - 1),
+            (self.maze.height - 1, 0),
+            (self.maze.height - 1, self.maze.width - 1),
         }
         for r, c in corner_cells:
             self.super_pacgums.append(SuperPacgum(r, c))
-        center = (self.maze.height // 2, self.maze.width // 2)
+        center = (self.player.row, self.player.col)
+        reachable = self._reachable_cells(center)
         skip = corner_cells | {center}
         all_cells = [
-            (r, c) for r in range(self.maze.height)
-            for c in range(self.maze.width) if (r, c) not in skip
+            cell for cell in reachable if cell not in skip
         ]
         target = min(len(all_cells), self.config.pacgum)
         for r, c in random.sample(all_cells, k=min(target, len(all_cells))):
@@ -101,7 +128,10 @@ class Level:
                 if ghost.state == GhostState.EDIBLE:
                     ghost.eat()
                     self.player.score += self.config.points_per_ghost
-                elif ghost.state == GhostState.CHASING and not self.player.invincible:
+                elif (
+                    ghost.state == GhostState.CHASING
+                    and not self.player.invincible
+                ):
                     self.player.lives -= 1
                     if self.player.lives <= 0:
                         self.level_lost = True
@@ -109,7 +139,7 @@ class Level:
                         self.player.respawn()
 
     def _check_win(self) -> None:
-        if all(pg.eaten for pg in self.pacgums):
+        if self.pacgums and all(pg.eaten for pg in self.pacgums):
             self.level_won = True
 
     def toggle_invincibility(self) -> None:

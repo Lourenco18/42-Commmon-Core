@@ -58,8 +58,10 @@ def _parse_levels(raw_levels: Any) -> list[dict[str, int]]:
         try:
             w = max(11, min(51, int(lvl.get("width", 21))))
             h = max(11, min(51, int(lvl.get("height", 21))))
-            if w % 2 == 0: w += 1
-            if h % 2 == 0: h += 1
+            if w % 2 == 0:
+                w += 1
+            if h % 2 == 0:
+                h += 1
         except (TypeError, ValueError):
             w, h = 21, 21
         parsed.append({"width": w, "height": h})
@@ -70,6 +72,7 @@ def _parse_levels(raw_levels: Any) -> list[dict[str, int]]:
 
 class Config:
     """Holds all validated game configuration values."""
+
     def __init__(self, highscore_filename: str, lives: int, pacgum: int,
                  points_per_pacgum: int, points_per_super_pacgum: int,
                  points_per_ghost: int, seed: int, level_max_time: int,
@@ -86,17 +89,38 @@ class Config:
         self.levels = levels
 
 
+def _strip_comment_lines(text: str) -> str:
+    """Remove whole-line comments from a JSON-with-comments string.
+
+    A line is treated as a comment, and dropped, when its first
+    non-whitespace characters are ``#`` or ``//`` (C/C++ style). This
+    matches the subject's requirement to support ``#`` comments, with
+    ``//`` supported as an additional, commonly expected style.
+    """
+    kept_lines = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") or stripped.startswith("//"):
+            continue
+        kept_lines.append(line)
+    return "\n".join(kept_lines)
+
+
 def load_config(path: str) -> Config:
-    """Load and validate a JSON config file."""
+    """Load and validate a JSON (with comments) config file."""
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data: dict[str, Any] = json.load(f)
-    except FileNotFoundError:
-        raise SystemExit(f"Error: config file '{path}' not found.")
+            raw_text = f.read()
+    except OSError as exc:
+        raise SystemExit(f"Error: could not read config file '{path}': {exc}")
+    try:
+        data: dict[str, Any] = json.loads(_strip_comment_lines(raw_text))
     except json.JSONDecodeError as exc:
-        raise SystemExit(f"Error: config file '{path}' is not valid JSON: {exc}")
+        raise SystemExit(
+            f"Error: config file '{path}' is not valid JSON: {exc}")
     if not isinstance(data, dict):
-        raise SystemExit("Error: config file must contain a JSON object at the root.")
+        raise SystemExit(
+            "Error: config file must contain a JSON object at the root.")
     hf = data.get("highscore_filename", DEFAULTS["highscore_filename"])
     if not isinstance(hf, str) or not hf.strip():
         hf = str(DEFAULTS["highscore_filename"])

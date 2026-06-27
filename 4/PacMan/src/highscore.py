@@ -20,6 +20,7 @@ def _validate_name(name: str) -> str:
 
 class HighscoreEntry:
     """Single highscore record."""
+
     def __init__(self, name: str, score: int) -> None:
         """Initialize entry."""
         self.name: str = _validate_name(name)
@@ -32,6 +33,7 @@ class HighscoreEntry:
 
 class HighscoreSystem:
     """Manages loading, saving, and querying highscores."""
+
     def __init__(self, filename: str) -> None:
         """Initialize and load."""
         self.filename: str = filename
@@ -52,10 +54,16 @@ class HighscoreSystem:
             for item in raw:
                 if isinstance(item, dict):
                     try:
-                        loaded.append(HighscoreEntry(str(item.get("name", "Player")), int(item.get("score", 0))))
+                        name = str(item.get("name", "Player"))
+                        score = int(item.get("score", 0))
+                        loaded.append(HighscoreEntry(name, score))
                     except (TypeError, ValueError):
                         pass
-            self.entries = sorted(loaded, key=lambda e: e.score, reverse=True)[:MAX_ENTRIES]
+            self.entries = sorted(
+                loaded,
+                key=lambda e: e.score,
+                reverse=True)[
+                :MAX_ENTRIES]
         except (json.JSONDecodeError, ValueError, OSError) as exc:
             logger.warning("Could not load highscores: %s", exc)
             self.entries = []
@@ -81,7 +89,8 @@ class HighscoreSystem:
 
     def is_highscore(self, score: int) -> bool:
         """Check if score qualifies for top 10."""
-        return len(self.entries) < MAX_ENTRIES or score > self.entries[-1].score
+        return len(
+            self.entries) < MAX_ENTRIES or score > self.entries[-1].score
 
     def get_top(self, n: int = MAX_ENTRIES) -> list[HighscoreEntry]:
         """Return top n entries."""

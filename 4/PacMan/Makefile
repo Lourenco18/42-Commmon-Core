@@ -1,4 +1,4 @@
-.PHONY: install run debug clean lint lint-strict
+.PHONY: install run debug clean lint lint-strict package
 
 install:
 	pip install -r requirements.txt
@@ -23,3 +23,9 @@ lint:
 lint-strict:
 	flake8 .
 	mypy . --strict
+
+# Build a standalone executable (build/dist/ output) for upload to a
+# platform such as itch.io. See README "Project Packaging" section.
+package:
+	pip install pyinstaller
+	pyinstaller --noconfirm pacman.spec
