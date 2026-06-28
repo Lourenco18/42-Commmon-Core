@@ -1,4 +1,4 @@
-.PHONY: install run debug clean lint lint-strict package
+.PHONY: install run debug clean deep-clean lint lint-strict package
 
 install:
 	pip install -r requirements.txt
@@ -15,6 +15,13 @@ clean:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true
 
+deep-clean: clean
+	rm -rf .venv venv build dist *.egg-info .pytest_cache
+	rm -rf data
+	rm -f .python-version uv.lock
+	find . -name "*.log" -delete 2>/dev/null || true
+	find . -name ".DS_Store" -delete 2>/dev/null || true
+
 lint:
 	flake8 .
 	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
@@ -24,8 +31,6 @@ lint-strict:
 	flake8 .
 	mypy . --strict
 
-# Build a standalone executable (build/dist/ output) for upload to a
-# platform such as itch.io. See README "Project Packaging" section.
 package:
 	pip install pyinstaller
 	pyinstaller --noconfirm pacman.spec

@@ -1,4 +1,3 @@
-"""Configuration loader for Pac-Man game."""
 import json
 import logging
 from typing import Any
@@ -46,7 +45,6 @@ def _get_int(data: dict[str, Any], key: str) -> int:
 
 
 def _parse_levels(raw_levels: Any) -> list[dict[str, int]]:
-    """Parse level array from config."""
     if not isinstance(raw_levels, list) or len(raw_levels) == 0:
         logger.warning("Config: 'level' missing/empty, using 10 defaults")
         return [{"width": 21, "height": 21}] * 10

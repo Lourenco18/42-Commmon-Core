@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by <login1>[, <login2>...].*
+*This project has been created as part of the 42 curriculum by dasantos*
 
 # Pac-Man
 
@@ -25,38 +25,15 @@ Key features:
 - `pip` package manager
 - The `mazegenerator` wheel included in this repository (`Pac-Man/mazegenerator-00001-py3-none-any.whl`)
 
-> **Check your Python version first**: `python3 --version`. On macOS,
-> the pre-installed system `python3` is often an old 3.9.x — too old to
-> even import the assigned `mazegenerator` package. If so, install a
-> newer interpreter and use it explicitly:
-> ```bash
-> brew install python@3.12          # or use pyenv
-> python3.12 -m pip install -r requirements.txt
-> python3.12 -m pip install Pac-Man/mazegenerator-00001-py3-none-any.whl
-> python3.12 pac-man.py config.json
-> ```
-> The game itself checks the interpreter version on startup and exits
-> with a clear message (instead of a crash) if it's below 3.10.
-
 ### Installation
 
 ```bash
 make install
 ```
-
-This installs `pygame` and the maze generator package.  
-Alternatively:
-```bash
-pip install -r requirements.txt
-pip install Pac-Man/mazegenerator-00001-py3-none-any.whl
-```
-
 ### Running the game
 
 ```bash
 make run
-# or
-python3 pac-man.py config.json
 ```
 
 Pass any config file as the single argument:
@@ -280,24 +257,8 @@ standalone one-file executable that bundles the game and its assets:
 
 ```bash
 make package
-# or
-pip install pyinstaller
-pyinstaller --noconfirm pacman.spec
-```
-
 The executable is produced in `dist/pacman` (build artefacts in
 `build/` and `dist/` are intentionally untracked — see `.gitignore`).
-
-To publish it as a free, unlisted build:
-1. Run `make package` to produce `dist/pacman`.
-2. Create an [itch.io](https://itch.io) project, set visibility to
-   "restricted" (unlisted) and the price to "free/name your own price".
-3. Upload `dist/pacman` (or zip the `dist/` folder) either through the
-   web uploader or with the [butler](https://itch.io/docs/butler/) CLI:
-   `butler push dist/ <user>/<project>:linux`.
-4. Share the unlisted page link for peer-review/demonstration purposes.
-
----
 
 ## Project Management
 
@@ -311,18 +272,14 @@ See [`project_management/PROJECT_MANAGEMENT.md`](project_management/PROJECT_MANA
 
 ## Resources
 
-### Classic references
-- [Pac-Man on Wikipedia](https://en.wikipedia.org/wiki/Pac-Man) — history and original mechanics
+### References
 - [The Pac-Man Dossier by Jamey Pittman](https://www.gamedeveloper.com/design/the-pac-man-dossier) — in-depth ghost AI analysis
 - [pygame documentation](https://www.pygame.org/docs/) — rendering, events, clock
-- [PEP 257 — Docstring Conventions](https://peps.python.org/pep-0257/)
-- [mypy documentation](https://mypy.readthedocs.io/en/stable/)
 
 ### AI usage
-AI assistance (Claude) was used for the following tasks in this project:
+AI assistance  was used for the following tasks in this project:
 - **Initial architecture planning**: discussing module boundaries and the separation of domain vs. presentation layers.
 - **Boilerplate generation**: class skeletons, docstring templates, and type hint patterns.
-- **Debugging assistance**: explaining maze bitmask encoding and helping reason through ghost-player collision edge cases.
 - **README drafting**: first draft of section structure, then reviewed and rewritten.
 
 All AI-generated content was reviewed, understood, tested, and adapted before inclusion. No code was copied without full comprehension of its behaviour.
