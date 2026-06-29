@@ -1,8 +1,8 @@
 .PHONY: install run debug clean deep-clean lint lint-strict package
 
 install:
-	pip install -r requirements.txt
-	pip install Pac-Man/mazegenerator-00001-py3-none-any.whl
+	python3 -m pip install -r requirements.txt
+	python3 -m pip install Pac-Man/mazegenerator-00001-py3-none-any.whl
 
 run:
 	python3 pac-man.py config.json
@@ -15,11 +15,6 @@ clean:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true
 
-# Reset the repository to a pristine, submission-ready state: removes
-# every generated or local-environment artifact (caches, virtualenvs,
-# build/package output, saved highscores, local interpreter pins) so
-# only the original tracked source remains, exactly as it should be
-# for delivery/evaluation.
 deep-clean: clean
 	rm -rf .venv venv build dist *.egg-info .pytest_cache
 	rm -rf data
@@ -38,8 +33,8 @@ lint-strict:
 	mypy . --strict
 
 package:
-	pip install pyinstaller
-	pyinstaller --noconfirm pacman.spec
+	python3 -m pip install pyinstaller
+	python3 -m PyInstaller --noconfirm pacman.spec
 	cp config.json dist/
 	@OS_NAME=$$(uname -s); \
 	case "$$OS_NAME" in \
