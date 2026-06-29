@@ -1,14 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
 # PyInstaller spec for packaging Pac-Man into a standalone executable
-# (e.g. for upload to itch.io). Run with: pyinstaller --noconfirm pacman.spec
+# (e.g. for upload to itch.io). Run with: make package
+# (or: pyinstaller --noconfirm pacman.spec)
 # The `mazegenerator` package itself is pulled in automatically via normal
 # import analysis (it must already be installed, e.g. via `make install`).
+#
+# Note: config.json is NOT bundled here as a PyInstaller resource, since
+# pac-man.py reads its config argument as a plain file path (not via
+# PyInstaller's internal resource path). The `package` Makefile target
+# copies the real config.json next to the built executable instead, so
+# it can be passed normally on the command line: ./pacman config.json
 
 a = Analysis(
     ['pac-man.py'],
     pathex=[],
     binaries=[],
-    datas=[('config.json', '.')],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
