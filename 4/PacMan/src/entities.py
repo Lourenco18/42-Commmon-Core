@@ -1,4 +1,3 @@
-"""Game entities: Player, Ghost, Pacgum, SuperPacgum."""
 import logging
 import math
 import random
@@ -19,7 +18,6 @@ DIR_TO_BIT: dict[tuple[int, int], int] = {
 
 
 class GhostState(Enum):
-    """Ghost states."""
     CHASING = auto()
     EDIBLE = auto()
     RESPAWNING = auto()
@@ -27,12 +25,10 @@ class GhostState(Enum):
 
 
 class Player:
-    """Pac-Man player entity."""
     BASE_INTERVAL: int = 8
     FAST_INTERVAL: int = 4
 
     def __init__(self, row: int, col: int, lives: int) -> None:
-        """Initialize player."""
         self.row = row
         self.col = col
         self.start_row = row
@@ -47,7 +43,6 @@ class Player:
         self.move_interval = self.BASE_INTERVAL
 
     def respawn(self) -> None:
-        """Respawn at start position."""
         self.row = self.start_row
         self.col = self.start_col
         self.direction = DIR_LEFT
@@ -55,11 +50,9 @@ class Player:
         self.move_timer = 0
 
     def set_direction(self, direction: tuple[int, int]) -> None:
-        """Queue a movement direction."""
         self.next_direction = direction
 
     def update(self, maze: Maze) -> None:
-        """Advance player by one frame."""
         self.move_interval = (
             self.FAST_INTERVAL if self.speed_boost else self.BASE_INTERVAL
         )
@@ -78,7 +71,6 @@ class Player:
 
 
 class Ghost:
-    """A ghost enemy."""
     NORMAL_INTERVAL: int = 12
     EDIBLE_INTERVAL: int = 20
     RESPAWN_DELAY: int = 300
@@ -86,7 +78,6 @@ class Ghost:
 
     def __init__(self, row: int, col: int, corner_row: int,
                  corner_col: int, color_name: str) -> None:
-        """Initialize ghost."""
         self.row = row
         self.col = col
         self.corner_row = corner_row
@@ -99,29 +90,24 @@ class Ghost:
         self.move_interval = self.NORMAL_INTERVAL
 
     def make_edible(self) -> None:
-        """Make ghost vulnerable."""
         if self.state not in (GhostState.RESPAWNING, GhostState.FROZEN):
             self.state = GhostState.EDIBLE
             self.edible_timer = self.EDIBLE_DURATION
             self.move_interval = self.EDIBLE_INTERVAL
 
     def eat(self) -> None:
-        """Ghost was eaten."""
         self.state = GhostState.RESPAWNING
         self.respawn_timer = self.RESPAWN_DELAY
         self.edible_timer = 0
 
     def freeze(self) -> None:
-        """Freeze ghost (cheat)."""
         self.state = GhostState.FROZEN
 
     def unfreeze(self) -> None:
-        """Unfreeze ghost."""
         if self.state == GhostState.FROZEN:
             self.state = GhostState.CHASING
 
     def update(self, maze: Maze, player_row: int, player_col: int) -> None:
-        """Advance ghost by one frame."""
         if self.state == GhostState.FROZEN:
             return
         if self.state == GhostState.RESPAWNING:
@@ -143,7 +129,6 @@ class Ghost:
         self._move(maze, player_row, player_col)
 
     def _move(self, maze: Maze, player_row: int, player_col: int) -> None:
-        """Move ghost towards/away from player."""
         neighbours = maze.neighbours(self.row, self.col)
         if not neighbours:
             return
@@ -159,20 +144,16 @@ class Ghost:
 
 
 class Pacgum:
-    """Small collectible dot."""
 
     def __init__(self, row: int, col: int) -> None:
-        """Initialize pacgum."""
         self.row = row
         self.col = col
         self.eaten = False
 
 
 class SuperPacgum:
-    """Power pellet."""
 
     def __init__(self, row: int, col: int) -> None:
-        """Initialize super-pacgum."""
         self.row = row
         self.col = col
         self.eaten = False

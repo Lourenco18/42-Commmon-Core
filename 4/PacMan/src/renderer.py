@@ -1,20 +1,12 @@
-"""Pygame renderer for Pac-Man.
-
-Handles drawing the maze, entities, HUD, menus, and all UI screens.
-"""
-
 import math
 import logging
-
 import pygame
-
 from src.entities import GhostState
 from src.highscore import HighscoreEntry
 from src.level import Level
 
 logger = logging.getLogger(__name__)
 
-# ── Colours ────────────────────────────────────────────────────────────────
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 YELLOW = (255, 220, 0)
@@ -39,22 +31,7 @@ HUD_HEIGHT: int = 50
 
 
 class Renderer:
-    """Draws the entire game to a pygame Surface.
-
-    Attributes:
-        screen: The main pygame display surface.
-        cell_size: Pixel size of one maze cell.
-        font_large: Large font for titles/scores.
-        font_med: Medium font for menus.
-        font_small: Small font for HUD labels.
-    """
-
     def __init__(self, screen: pygame.Surface) -> None:
-        """Initialize the renderer.
-
-        Args:
-            screen: Pygame display surface.
-        """
         self.screen: pygame.Surface = screen
         self.cell_size: int = CELL_SIZE
         pygame.font.init()
@@ -65,18 +42,10 @@ class Renderer:
         self.font_small: pygame.font.Font = pygame.font.SysFont(
             "monospace", 16)
         self._pacman_angle: float = 0.0
-        self._mouth_open: float = 0.3   # radians, animates
+        self._mouth_open: float = 0.3
         self._mouth_dir: int = 1
 
-    # ── Public draw methods ─────────────────────────────────────────────────
-
     def draw_game(self, level: Level, tick: int) -> None:
-        """Draw the full game view (maze + HUD).
-
-        Args:
-            level: Current level state.
-            tick: Current game tick for animation.
-        """
         self.screen.fill(BLACK)
         self._animate_pacman(tick)
         self._draw_maze(level)
@@ -88,12 +57,6 @@ class Renderer:
 
     def draw_main_menu(self, selected: int,
                        highscores: list[HighscoreEntry]) -> None:
-        """Draw the main menu screen.
-
-        Args:
-            selected: Index of currently highlighted menu item.
-            highscores: List of HighscoreEntry for preview.
-        """
         self.screen.fill(BLACK)
         self._draw_title("PAC-MAN", YELLOW, y=60)
 
@@ -102,7 +65,6 @@ class Renderer:
             color = YELLOW if i == selected else WHITE
             self._draw_centered(item, self.font_med, color, y=180 + i * 44)
 
-        # Show top 3 scores as a teaser
         if highscores:
             self._draw_centered(
                 "── Top Scores ──", self.font_small, (150, 150, 150), y=380)
@@ -115,11 +77,6 @@ class Renderer:
                             self.font_small, (100, 100, 100), y=500)
 
     def draw_highscores(self, entries: list[HighscoreEntry]) -> None:
-        """Draw the highscore table screen.
-
-        Args:
-            entries: List of HighscoreEntry.
-        """
         self.screen.fill(BLACK)
         self._draw_title("HIGH SCORES", YELLOW, y=40)
         if not entries:
@@ -137,7 +94,6 @@ class Renderer:
                             self.font_small, (100, 100, 100), y=510)
 
     def draw_instructions(self) -> None:
-        """Draw the instructions/controls screen."""
         self.screen.fill(BLACK)
         self._draw_title("INSTRUCTIONS", YELLOW, y=40)
         lines = [
@@ -162,11 +118,6 @@ class Renderer:
                             self.font_small, (100, 100, 100), y=510)
 
     def draw_pause(self, level: Level) -> None:
-        """Draw the pause overlay.
-
-        Args:
-            level: Current level (drawn underneath).
-        """
         self.draw_game(level, 0)
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
@@ -184,13 +135,6 @@ class Renderer:
             y=304)
 
     def draw_name_entry(self, score: int, name_buf: str, prompt: str) -> None:
-        """Draw the name entry screen after win/loss.
-
-        Args:
-            score: Final player score.
-            name_buf: Current text buffer.
-            prompt: Title prompt string.
-        """
         self.screen.fill(BLACK)
         self._draw_title(prompt, YELLOW, y=100)
         self._draw_centered(
@@ -201,7 +145,6 @@ class Renderer:
         self._draw_centered(
             "Enter your name:", self.font_med, (180, 180, 180), y=240)
 
-        # Input box
         box_w, box_h = 260, 42
         bx = self.screen.get_width() // 2 - box_w // 2
         by = 278
@@ -214,21 +157,11 @@ class Renderer:
             "ENTER to confirm", self.font_small, (120, 120, 120), y=340)
 
     def draw_game_over(self, score: int) -> None:
-        """Draw the game-over screen briefly.
-
-        Args:
-            score: Final score.
-        """
         self.screen.fill(BLACK)
         self._draw_title("GAME OVER", (230, 40, 40), y=160)
         self._draw_centered(f"Score: {score}", self.font_med, WHITE, y=250)
 
     def draw_victory(self, score: int) -> None:
-        """Draw the victory screen.
-
-        Args:
-            score: Final score.
-        """
         self.screen.fill(BLACK)
         self._draw_title("YOU WIN!", YELLOW, y=160)
         self._draw_centered("Congratulations!", self.font_med, WHITE, y=240)
@@ -238,14 +171,7 @@ class Renderer:
             YELLOW,
             y=280)
 
-    # ── Internal helpers ────────────────────────────────────────────────────
-
     def _animate_pacman(self, tick: int) -> None:
-        """Update Pac-Man mouth animation.
-
-        Args:
-            tick: Current game tick.
-        """
         speed = 0.08
         self._mouth_open += speed * self._mouth_dir
         if self._mouth_open > 0.55:
@@ -254,25 +180,11 @@ class Renderer:
             self._mouth_dir = 1
 
     def _cell_rect(self, row: int, col: int) -> pygame.Rect:
-        """Compute pixel rect for a maze cell.
-
-        Args:
-            row: Grid row.
-            col: Grid column.
-
-        Returns:
-            pygame.Rect for the cell.
-        """
         x = col * self.cell_size
         y = row * self.cell_size + HUD_HEIGHT
         return pygame.Rect(x, y, self.cell_size, self.cell_size)
 
     def _draw_maze(self, level: Level) -> None:
-        """Draw maze walls and corridors.
-
-        Args:
-            level: Current level.
-        """
         maze = level.maze
         wall_thickness = 3
 
@@ -282,7 +194,6 @@ class Renderer:
                 pygame.draw.rect(self.screen, CORRIDOR_COLOR, rect)
 
                 cell = maze.grid[r][c]
-                # A set bit means a wall is present in that direction.
                 if cell & 1:  # N wall
                     pygame.draw.line(
                         self.screen, WALL_COLOR,
@@ -305,11 +216,6 @@ class Renderer:
                         wall_thickness)
 
     def _draw_pacgums(self, level: Level) -> None:
-        """Draw uneaten pacgums.
-
-        Args:
-            level: Current level.
-        """
         r = self.cell_size // 8
         for pg in level.pacgums:
             if not pg.eaten:
@@ -321,12 +227,6 @@ class Renderer:
                         2, r))
 
     def _draw_super_pacgums(self, level: Level, tick: int) -> None:
-        """Draw uneaten super-pacgums (pulsing).
-
-        Args:
-            level: Current level.
-            tick: Current tick for pulse animation.
-        """
         base_r = self.cell_size // 4
         pulse = int(2 * math.sin(tick * 0.1))
         r = max(3, base_r + pulse)
@@ -337,12 +237,6 @@ class Renderer:
                                    (rect.centerx, rect.centery), r)
 
     def _draw_ghosts(self, level: Level, tick: int) -> None:
-        """Draw all ghosts.
-
-        Args:
-            level: Current level.
-            tick: Current tick for flashing effect.
-        """
         for ghost in level.ghosts:
             if ghost.state == GhostState.RESPAWNING:
                 continue
@@ -359,11 +253,10 @@ class Renderer:
             else:
                 color = GHOST_COLORS.get(ghost.color_name, WHITE)
 
-            # Body: half-circle top + rectangle bottom
             pygame.draw.circle(self.screen, color, (cx, cy - r // 4), r)
             pygame.draw.rect(self.screen, color,
                              (cx - r, cy - r // 4, r * 2, r + r // 4))
-            # Eyes
+
             eye_color = WHITE if ghost.state != GhostState.EDIBLE else (
                 200, 50, 50)
             pygame.draw.circle(
@@ -372,17 +265,10 @@ class Renderer:
                 self.screen, eye_color, (cx + r // 3, cy - r // 3), r // 5)
 
     def _draw_player(self, level: Level) -> None:
-        """Draw Pac-Man.
-
-        Args:
-            level: Current level.
-        """
         p = level.player
         rect = self._cell_rect(p.row, p.col)
         cx, cy = rect.centerx, rect.centery
         r = self.cell_size // 2 - 2
-
-        # Rotation based on direction
         dir_angles: dict[tuple[int, int], float] = {
             (-1, 0): 270.0,   # UP
             (1, 0): 90.0,     # DOWN
@@ -396,7 +282,6 @@ class Renderer:
         end_angle = math.radians(angle + 360) - mouth_rad
         color = YELLOW if not p.invincible else (180, 255, 180)
 
-        # Draw filled pie / arc approximation
         points: list[tuple[float, float]] = [(float(cx), float(cy))]
         steps = 30
         for i in range(steps + 1):
@@ -408,11 +293,6 @@ class Renderer:
             pygame.draw.polygon(self.screen, color, points)
 
     def _draw_hud(self, level: Level) -> None:
-        """Draw the in-game HUD bar.
-
-        Args:
-            level: Current level.
-        """
         p = level.player
         w = self.screen.get_width()
         pygame.draw.rect(self.screen, HUD_BG, (0, 0, w, HUD_HEIGHT))
@@ -434,7 +314,6 @@ class Renderer:
         self.screen.blit(time_surf, (w - 160, 8))
         self.screen.blit(level_surf, (w // 2 - 38, 30))
 
-        # Cheat indicators
         cheats = []
         if p.invincible:
             cheats.append("INV")
@@ -447,27 +326,12 @@ class Renderer:
 
     def _draw_title(self, text: str,
                     color: tuple[int, int, int], y: int) -> None:
-        """Draw a large centered title.
-
-        Args:
-            text: Title text.
-            color: RGB color tuple.
-            y: Y pixel position.
-        """
         surf = self.font_large.render(text, True, color)
         x = self.screen.get_width() // 2 - surf.get_width() // 2
         self.screen.blit(surf, (x, y))
 
     def _draw_centered(self, text: str, font: pygame.font.Font,
                        color: tuple[int, int, int], y: int) -> None:
-        """Draw centered text at a given y position.
-
-        Args:
-            text: Text to render.
-            font: Pygame font.
-            color: RGB color.
-            y: Y pixel position.
-        """
         surf = font.render(text, True, color)
         x = self.screen.get_width() // 2 - surf.get_width() // 2
         self.screen.blit(surf, (x, y))
@@ -475,13 +339,4 @@ class Renderer:
     @staticmethod
     def compute_window_size(
             maze_width: int, maze_height: int) -> tuple[int, int]:
-        """Compute required window size for a given maze.
-
-        Args:
-            maze_width: Maze width in cells.
-            maze_height: Maze height in cells.
-
-        Returns:
-            (window_width, window_height) tuple.
-        """
         return (maze_width * CELL_SIZE, maze_height * CELL_SIZE + HUD_HEIGHT)

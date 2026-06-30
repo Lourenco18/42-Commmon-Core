@@ -28,7 +28,6 @@ INT_CLAMPS: dict[str, tuple[int, int]] = {
 
 
 def _get_int(data: dict[str, Any], key: str) -> int:
-    """Get and clamp an integer config value."""
     default = DEFAULTS[key]
     raw = data.get(key, default)
     try:
@@ -69,13 +68,11 @@ def _parse_levels(raw_levels: Any) -> list[dict[str, int]]:
 
 
 class Config:
-    """Holds all validated game configuration values."""
 
     def __init__(self, highscore_filename: str, lives: int, pacgum: int,
                  points_per_pacgum: int, points_per_super_pacgum: int,
                  points_per_ghost: int, seed: int, level_max_time: int,
                  levels: list[dict[str, int]]) -> None:
-        """Initialize Config."""
         self.highscore_filename = highscore_filename
         self.lives = lives
         self.pacgum = pacgum
@@ -88,13 +85,6 @@ class Config:
 
 
 def _strip_comment_lines(text: str) -> str:
-    """Remove whole-line comments from a JSON-with-comments string.
-
-    A line is treated as a comment, and dropped, when its first
-    non-whitespace characters are ``#`` or ``//`` (C/C++ style). This
-    matches the subject's requirement to support ``#`` comments, with
-    ``//`` supported as an additional, commonly expected style.
-    """
     kept_lines = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -105,7 +95,6 @@ def _strip_comment_lines(text: str) -> str:
 
 
 def load_config(path: str) -> Config:
-    """Load and validate a JSON (with comments) config file."""
     try:
         with open(path, "r", encoding="utf-8") as f:
             raw_text = f.read()

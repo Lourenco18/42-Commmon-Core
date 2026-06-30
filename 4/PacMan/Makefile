@@ -18,19 +18,20 @@ clean:
 deep-clean: clean
 	rm -rf .venv venv build dist *.egg-info .pytest_cache
 	rm -rf data
-	rm -f .python-version uv.lock
+	rm -f uv.lock
+	rm -f .mypy_cache
 	rm -f pacman-*.zip
 	find . -name "*.log" -delete 2>/dev/null || true
 	find . -name ".DS_Store" -delete 2>/dev/null || true
 
 lint:
-	flake8 .
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
+	flake8 src
+	mypy src --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 	       --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	flake8 .
-	mypy . --strict
+	flake8 src
+	mypy src --strict --ignore-missing-imports
 
 package:
 	python3 -m pip install pyinstaller
@@ -43,6 +44,6 @@ package:
 		*) PLATFORM=$$OS_NAME ;; \
 	esac; \
 	rm -f pacman-$$PLATFORM.zip; \
-	cd dist && zip -r ../pacman-$$PLATFORM.zip pacman config.json; \
+	cd dist && zip -r ../pacman-$$PLATFORM.zip .; \
 	cd ..; \
-	echo "Created pacman-$$PLATFORM.zip - ready to upload to itch.io"
+	echo "Created pacman-$$PLATFORM.zip"

@@ -1,9 +1,3 @@
-"""Main game controller for Pac-Man.
-
-State machine that manages transitions between menus, gameplay,
-pause, name entry, and end screens.
-"""
-
 import logging
 import sys
 from enum import Enum, auto
@@ -25,19 +19,6 @@ MIN_WIN_HEIGHT: int = 560
 
 
 class GameState(Enum):
-    """All possible game states.
-
-    Attributes:
-        MAIN_MENU: Main menu screen.
-        PLAYING: Active gameplay.
-        PAUSED: Game paused.
-        HIGHSCORES: Highscore table screen.
-        INSTRUCTIONS: Instructions/controls screen.
-        NAME_ENTRY: Player enters name after game ends.
-        GAME_OVER: Brief game-over display.
-        VICTORY: Brief victory display.
-    """
-
     MAIN_MENU = auto()
     PLAYING = auto()
     PAUSED = auto()
@@ -49,37 +30,14 @@ class GameState(Enum):
 
 
 class Game:
-    """Top-level game loop and state machine.
-
-    Attributes:
-        config: Loaded game configuration.
-        highscores: Persistent highscore system.
-        state: Current GameState.
-        level: Active Level (None when in menus).
-        level_index: Current 0-based level number.
-        screen: Pygame display surface.
-        renderer: Rendering subsystem.
-        clock: Pygame clock for FPS capping.
-        menu_selection: Highlighted menu item index.
-        name_buffer: Text typed during name entry.
-        final_score: Score captured when game ended.
-        tick: Frame counter for animations.
-    """
-
     MENU_ITEMS: int = 4
 
     def __init__(self, config: Config) -> None:
-        """Initialize the game.
-
-        Args:
-            config: Validated game configuration.
-        """
         self.config: Config = config
         self.highscores: HighscoreSystem = HighscoreSystem(
             config.highscore_filename)
 
         pygame.init()
-        # Start with a minimum-size window; resized when a level loads
         self.screen: pygame.Surface = pygame.display.set_mode(
             (MIN_WIN_WIDTH, MIN_WIN_HEIGHT), pygame.RESIZABLE
         )
@@ -95,9 +53,7 @@ class Game:
         self.final_score: int = 0
         self._victory: bool = False
         self.tick: int = 0
-        self._end_timer: int = 0   # brief delay before name entry prompt
-
-    # ── Public entry point ──────────────────────────────────────────────────
+        self._end_timer: int = 0
 
     def run(self) -> None:
         """Start and run the main game loop until exit."""
@@ -110,10 +66,7 @@ class Game:
             pygame.display.flip()
             self.tick += 1
 
-    # ── Event handling ──────────────────────────────────────────────────────
-
     def _handle_events(self) -> None:
-        """Process all pending pygame events."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._quit()
@@ -121,12 +74,6 @@ class Game:
                 self._on_key(event.key, event.unicode)
 
     def _on_key(self, key: int, unicode: str) -> None:
-        """Dispatch a key press to the appropriate state handler.
-
-        Args:
-            key: pygame key constant.
-            unicode: Unicode character string.
-        """
         if self.state == GameState.MAIN_MENU:
             self._key_menu(key)
         elif self.state == GameState.PLAYING:
@@ -142,14 +89,9 @@ class Game:
         elif self.state == GameState.NAME_ENTRY:
             self._key_name_entry(key, unicode)
         elif self.state in (GameState.GAME_OVER, GameState.VICTORY):
-            pass  # handled by timer
+            pass
 
     def _key_menu(self, key: int) -> None:
-        """Handle key in main menu.
-
-        Args:
-            key: pygame key constant.
-        """
         if key in (pygame.K_UP, pygame.K_w):
             self.menu_selection = (self.menu_selection - 1) % self.MENU_ITEMS
         elif key in (pygame.K_DOWN, pygame.K_s):
@@ -165,15 +107,8 @@ class Game:
                 self._quit()
 
     def _key_playing(self, key: int) -> None:
-        """Handle key during gameplay (movement + cheats + pause).
-
-        Args:
-            key: pygame key constant.
-        """
         if self.level is None:
             return
-
-        # Movement
         if key in (pygame.K_UP, pygame.K_w):
             self.level.player.set_direction(DIR_UP)
         elif key in (pygame.K_DOWN, pygame.K_s):
@@ -182,12 +117,8 @@ class Game:
             self.level.player.set_direction(DIR_LEFT)
         elif key in (pygame.K_RIGHT, pygame.K_d):
             self.level.player.set_direction(DIR_RIGHT)
-
-        # Pause
         elif key in (pygame.K_p, pygame.K_ESCAPE):
             self.state = GameState.PAUSED
-
-        # Cheat mode
         elif key == pygame.K_i:
             self.level.toggle_invincibility()
         elif key == pygame.K_f:
@@ -200,11 +131,6 @@ class Game:
             self.level.skip_level()
 
     def _key_paused(self, key: int) -> None:
-        """Handle key while paused.
-
-        Args:
-            key: pygame key constant.
-        """
         if key in (pygame.K_RETURN, pygame.K_p):
             self.state = GameState.PLAYING
         elif key == pygame.K_ESCAPE:
@@ -212,12 +138,6 @@ class Game:
             self.state = GameState.MAIN_MENU
 
     def _key_name_entry(self, key: int, unicode: str) -> None:
-        """Handle key during name entry.
-
-        Args:
-            key: pygame key constant.
-            unicode: Typed character.
-        """
         if key == pygame.K_RETURN:
             name = self.name_buffer.strip() or "Player"
             self.highscores.add(name, self.final_score)
@@ -231,28 +151,19 @@ class Game:
                     unicode.isalnum() or unicode == " "):
                 self.name_buffer += unicode
 
-    # ── Update ──────────────────────────────────────────────────────────────
-
     def _update(self, dt: float) -> None:
-        """Advance game logic by dt seconds.
-
-        Args:
-            dt: Delta time in seconds.
-        """
         if self.state == GameState.PLAYING and self.level is not None:
             self.level.update(dt)
             if self.level.level_won:
                 self._on_level_won()
             elif self.level.level_lost:
                 self._on_level_lost()
-
         elif self.state in (GameState.GAME_OVER, GameState.VICTORY):
             self._end_timer -= 1
             if self._end_timer <= 0:
                 self.state = GameState.NAME_ENTRY
 
     def _on_level_won(self) -> None:
-        """Handle completion of a level."""
         assert self.level is not None
         lives = self.level.player.lives
         score = self.level.player.score
@@ -270,7 +181,6 @@ class Game:
             self._load_level(self.level_index, lives, score, seed=None)
 
     def _on_level_lost(self) -> None:
-        """Handle game over condition."""
         assert self.level is not None
         self.final_score = self.level.player.score
         self._victory = False
@@ -279,10 +189,7 @@ class Game:
         self._end_timer = FPS * 2
         self.level = None
 
-    # ── Draw ────────────────────────────────────────────────────────────────
-
     def _draw(self) -> None:
-        """Render the current state to the screen."""
         if self.state == GameState.MAIN_MENU:
             self.renderer.draw_main_menu(
                 self.menu_selection, self.highscores.get_top(3))
@@ -303,31 +210,18 @@ class Game:
         elif self.state == GameState.VICTORY:
             self.renderer.draw_victory(self.final_score)
 
-    # ── Helpers ─────────────────────────────────────────────────────────────
-
     def _start_game(self) -> None:
-        """Start a new game from level 1."""
         self.level_index = 0
         self._load_level(0, self.config.lives, 0, seed=self.config.seed)
 
     def _load_level(self, index: int, lives: int, score: int,
                     seed: Optional[int]) -> None:
-        """Load and start a level.
-
-        Args:
-            index: 0-based level index.
-            lives: Player's current lives.
-            score: Player's current score.
-            seed: Maze seed (None = random).
-        """
         try:
             self.level = Level(self.config, index, lives, score, seed=seed)
         except RuntimeError as exc:
             logger.error("Failed to load level %d: %s", index + 1, exc)
             self.state = GameState.MAIN_MENU
             return
-
-        # Resize window to fit maze
         spec = self.config.levels[min(index, len(self.config.levels) - 1)]
         w, h = Renderer.compute_window_size(spec["width"], spec["height"])
         w = max(w, MIN_WIN_WIDTH)
@@ -338,7 +232,6 @@ class Game:
         logger.info("Level %d loaded (seed=%s)", index + 1, seed)
 
     def _quit(self) -> None:
-        """Save highscores and exit cleanly."""
         self.highscores.save()
         pygame.quit()
         sys.exit(0)

@@ -1,11 +1,3 @@
-"""Pac-Man — entry point.
-
-Usage:
-    python3 pac-man.py config.json
-
-The program takes exactly one argument: a path to a JSON configuration file.
-"""
-
 import logging
 import sys
 
@@ -29,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    """Parse arguments, load config, and run the game."""
     if len(sys.argv) != 2:
         print("Usage: python3 pac-man.py <config.json>")
         sys.exit(1)

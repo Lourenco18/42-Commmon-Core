@@ -1,4 +1,3 @@
-"""Level management for Pac-Man."""
 import logging
 import random
 from typing import Optional
@@ -12,11 +11,9 @@ GHOST_COLORS: list[str] = ["red", "pink", "cyan", "orange"]
 
 
 class Level:
-    """Single game level state."""
 
     def __init__(self, config: Config, level_index: int, player_lives: int,
                  player_score: int, seed: Optional[int] = None) -> None:
-        """Initialize level."""
         self.config = config
         self.level_index = level_index
         spec = config.levels[min(level_index, len(config.levels) - 1)]
@@ -55,13 +52,6 @@ class Level:
         self._place_items()
 
     def _reachable_cells(self, start: tuple[int, int]) -> set[tuple[int, int]]:
-        """Return all cells reachable from `start` via maze corridors.
-
-        The assigned A-Maze-ing generator can occasionally produce a few
-        cells that are walled off from the rest of the maze. Restricting
-        pacgum placement to this reachable set guarantees the level can
-        always be fully cleared by the player.
-        """
         visited: set[tuple[int, int]] = {start}
         queue: list[tuple[int, int]] = [start]
         while queue:
@@ -73,7 +63,6 @@ class Level:
         return visited
 
     def _place_items(self) -> None:
-        """Place pacgums and super-pacgums."""
         corner_cells = {
             (0, 0),
             (0, self.maze.width - 1),
@@ -93,7 +82,6 @@ class Level:
             self.pacgums.append(Pacgum(r, c))
 
     def update(self, dt: float) -> None:
-        """Advance level by dt seconds."""
         if self.level_won or self.level_lost:
             return
         self.time_remaining -= dt
@@ -143,15 +131,12 @@ class Level:
             self.level_won = True
 
     def toggle_invincibility(self) -> None:
-        """Toggle invincibility cheat."""
         self.player.invincible = not self.player.invincible
 
     def skip_level(self) -> None:
-        """Skip current level cheat."""
         self.level_won = True
 
     def toggle_ghost_freeze(self) -> None:
-        """Toggle ghost freeze cheat."""
         all_frozen = all(g.state == GhostState.FROZEN for g in self.ghosts
                          if g.state != GhostState.RESPAWNING)
         for ghost in self.ghosts:
@@ -161,9 +146,7 @@ class Level:
                 ghost.freeze()
 
     def add_extra_life(self) -> None:
-        """Add extra life cheat."""
         self.player.lives += 1
 
     def toggle_speed_boost(self) -> None:
-        """Toggle speed boost cheat."""
         self.player.speed_boost = not self.player.speed_boost
