@@ -97,11 +97,19 @@ class AnswerGenerator:
         context_str = '\n\n---\n\n'.join(context_parts)
 
         prompt = (
-            f"You are a helpful assistant. Answer the question based on "
-            f"the provided code context.\n\n"
+            "You are a technical assistant for the vLLM codebase. "
+            "Answer the question using ONLY the provided context below.\n"
+            "Your answer must be:\n"
+            "- Self-contained: readable and understandable without "
+            "seeing the original question.\n"
+            "- Source-grounded: mention the file(s) the information "
+            "comes from.\n"
+            "- Faithful: do not add information not present in the "
+            "context (no hallucination).\n"
+            "- Relevant: directly answer what was asked.\n\n"
             f"Context:\n{context_str}\n\n"
             f"Question: {question}\n\n"
-            f"Answer:"
+            "Answer:"
         )
         return prompt
 

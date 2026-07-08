@@ -18,6 +18,9 @@ dependencies = [
     "mypy>=1.0.0",
 ]
 
+[project.scripts]
+student = "student.__main__:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/student"]
 

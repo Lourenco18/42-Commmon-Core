@@ -145,8 +145,8 @@ class RAGSystem:
         search_results: List[MinimalSearchResults] = []
 
         for q in tqdm(dataset.rag_questions, desc="Searching"):
-            question_str = q.question
-            question_id = q.question_id
+            question_str = str(q.question)
+            question_id = str(q.question_id)
 
             results = idx.search(question_str, k=k)
             sources = [
@@ -344,29 +344,34 @@ class RAGSystem:
 
 
 def _overlap_fraction(
-    s1_start: int, s1_end: int,
-    s2_start: int, s2_end: int,
+    retrieved_start: int, retrieved_end: int,
+    gt_start: int, gt_end: int,
 ) -> float:
-    """Compute the overlap fraction between two character ranges.
+    """Compute overlap fraction between a retrieved chunk and a GT source.
+
+    As per the subject specification: a source is considered "found" if
+    there is at least 5% overlap. The overlap is measured relative to
+    the ground-truth source length (i.e. how much of the GT source
+    is covered by the retrieved chunk).
 
     Args:
-        s1_start: Start of first range.
-        s1_end: End of first range.
-        s2_start: Start of second range.
-        s2_end: End of second range.
+        retrieved_start: Start character index of the retrieved chunk.
+        retrieved_end: End character index of the retrieved chunk.
+        gt_start: Start character index of the ground truth source.
+        gt_end: End character index of the ground truth source.
 
     Returns:
-        Fraction of overlap relative to the smaller range.
+        Fraction of the GT source covered by the retrieved chunk (0.0-1.0).
     """
-    overlap_start = max(s1_start, s2_start)
-    overlap_end = min(s1_end, s2_end)
+    overlap_start = max(retrieved_start, gt_start)
+    overlap_end = min(retrieved_end, gt_end)
     if overlap_end <= overlap_start:
         return 0.0
     overlap_len = overlap_end - overlap_start
-    min_len = min(s1_end - s1_start, s2_end - s2_start)
-    if min_len <= 0:
+    gt_len = gt_end - gt_start
+    if gt_len <= 0:
         return 0.0
-    return overlap_len / min_len
+    return overlap_len / gt_len
 
 
 def _source_found(
@@ -389,8 +394,10 @@ def _source_found(
     for src in retrieved[:k]:
         if src.file_path == gt_source.file_path:
             frac = _overlap_fraction(
-                src.first_character_index, src.last_character_index,
-                gt_source.first_character_index, gt_source.last_character_index,
+                src.first_character_index,
+                src.last_character_index,
+                gt_source.first_character_index,
+                gt_source.last_character_index,
             )
             if frac >= 0.05:
                 return True
