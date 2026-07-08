@@ -24,6 +24,9 @@ student = "student.__main__:main"
 [tool.hatch.build.targets.wheel]
 packages = ["src/student"]
 
+[tool.uv]
+package = true
+
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
