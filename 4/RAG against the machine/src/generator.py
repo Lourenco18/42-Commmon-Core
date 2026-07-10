@@ -46,7 +46,8 @@ class AnswerGenerator:
                     file_path if file_path.startswith('/')
                     else f"{repo_path}/{file_path}"
                 )
-                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(full_path, 'r', encoding='utf-8',
+                          errors='ignore') as f:
                     content = f.read()
                 snippet = content[start:end][:self.max_context_length]
                 context_parts.append(

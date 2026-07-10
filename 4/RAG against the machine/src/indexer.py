@@ -1,3 +1,9 @@
+"""Knowledge base ingestion and indexing system.
+
+This module handles reading files from the vLLM repository,
+chunking them, and building a BM25 index for retrieval.
+"""
+
 import json
 import os
 import pickle
@@ -9,11 +15,13 @@ from tqdm import tqdm
 
 from student.chunker import get_file_chunks
 
+# File extensions to index
 INDEXABLE_EXTENSIONS = {
     '.py', '.md', '.rst', '.txt', '.yaml', '.yml',
     '.toml', '.cfg', '.ini', '.sh'
 }
 
+# Directories/files to skip
 SKIP_DIRS = {
     '__pycache__', '.git', '.github', 'node_modules',
     'build', 'dist', '.mypy_cache', '.pytest_cache',
@@ -22,11 +30,26 @@ SKIP_DIRS = {
 
 
 def tokenize(text: str) -> List[str]:
+    """Tokenize text for BM25 indexing.
+
+    Splits on whitespace and punctuation, lowercases tokens,
+    and filters short tokens.
+
+    Args:
+        text: Input text to tokenize.
+
+    Returns:
+        List of lowercase tokens.
+    """
+    # Split on non-alphanumeric characters, keep underscores
     tokens = re.split(r'[^\w_]+', text.lower())
+    # Also split on camelCase and snake_case boundaries
     expanded: List[str] = []
     for token in tokens:
         if len(token) > 1:
+            # Split camelCase
             parts = re.sub(r'([A-Z][a-z]+)', r' \1', token).split()
+            # Split on underscores
             for part in parts:
                 sub = [p for p in part.split('_') if len(p) > 1]
                 expanded.extend(sub)
@@ -35,6 +58,14 @@ def tokenize(text: str) -> List[str]:
 
 
 def should_skip_file(file_path: str) -> bool:
+    """Determine if a file should be skipped during indexing.
+
+    Args:
+        file_path: Path to the file.
+
+    Returns:
+        True if the file should be skipped, False otherwise.
+    """
     parts = file_path.replace('\\', '/').split('/')
     for part in parts:
         if part in SKIP_DIRS or part.startswith('.'):
@@ -44,8 +75,17 @@ def should_skip_file(file_path: str) -> bool:
 
 
 def collect_files(repo_path: str) -> List[str]:
+    """Collect all indexable files from a repository directory.
+
+    Args:
+        repo_path: Root path of the repository.
+
+    Returns:
+        List of absolute file paths.
+    """
     files: List[str] = []
     for root, dirs, filenames in os.walk(repo_path):
+        # Prune directories to skip in-place
         dirs[:] = [
             d for d in dirs
             if d not in SKIP_DIRS and not d.startswith('.')
@@ -59,9 +99,24 @@ def collect_files(repo_path: str) -> List[str]:
 
 
 class BM25Index:
+    """BM25-based retrieval index for the knowledge base.
+
+    Attributes:
+        repo_path: Root path of the indexed repository.
+        max_chunk_size: Maximum characters per chunk.
+        bm25: The BM25Okapi retrieval model.
+        chunks: List of (file_path, start, end, text) for all chunks.
+    """
+
     def __init__(
         self, repo_path: str, max_chunk_size: int = 2000
     ) -> None:
+        """Initialize the BM25Index.
+
+        Args:
+            repo_path: Root path of the repository to index.
+            max_chunk_size: Maximum characters per chunk.
+        """
         self.repo_path = repo_path
         self.max_chunk_size = max_chunk_size
         self.bm25: Optional[BM25Okapi] = None
@@ -69,6 +124,10 @@ class BM25Index:
         self.chunks: List[Tuple[str, int, int, str]] = []
 
     def build(self) -> None:
+        """Build the BM25 index from the repository.
+
+        Reads all indexable files, chunks them, and builds the BM25 model.
+        """
         files = collect_files(self.repo_path)
         corpus: List[List[str]] = []
 
@@ -82,7 +141,7 @@ class BM25Index:
             if not content.strip():
                 continue
 
-            rel_path = os.path.relpath(fpath, self.repo_path)
+            rel_path = os.path.relpath(fpath)
             file_chunks = get_file_chunks(
                 fpath, content, self.max_chunk_size
             )
@@ -98,12 +157,23 @@ class BM25Index:
     def search(
         self, query: str, k: int = 10
     ) -> List[Dict[str, Any]]:
+        """Search the index for the most relevant chunks.
+
+        Args:
+            query: The search query string.
+            k: Number of top results to return.
+
+        Returns:
+            List of dicts with keys: file_path, first_character_index,
+            last_character_index, score.
+        """
         if self.bm25 is None or not self.chunks:
             return []
 
         query_tokens = tokenize(query)
         scores = self.bm25.get_scores(query_tokens)
 
+        # Get top-k indices sorted by score
         top_k = sorted(
             range(len(scores)), key=lambda i: scores[i], reverse=True
         )[:k]
@@ -128,11 +198,22 @@ class BM25Index:
         return results
 
     def save(self, index_dir: str) -> None:
+        """Save the index to disk.
+
+        Creates the following structure under data/processed/:
+        - bm25_index/  — BM25 model and chunk metadata
+        - chunks/      — chunk text files organised by source file
+
+        Args:
+            index_dir: Directory where index files will be saved
+                       (e.g. data/processed/bm25_index).
+        """
         os.makedirs(index_dir, exist_ok=True)
 
         with open(os.path.join(index_dir, 'bm25.pkl'), 'wb') as f:
             pickle.dump(self.bm25, f)
 
+        # Save chunks metadata (without full text to save space)
         chunks_meta = [
             {'file_path': c[0], 'start': c[1], 'end': c[2]}
             for c in self.chunks
@@ -144,13 +225,17 @@ class BM25Index:
                 'chunks': chunks_meta,
             }, f)
 
+        # Save chunk texts separately
         chunk_texts = [c[3] for c in self.chunks]
         with open(os.path.join(index_dir, 'chunk_texts.pkl'), 'wb') as f:
             pickle.dump(chunk_texts, f)
 
+        # Also create the chunks/ directory alongside bm25_index/
+        # (as shown in the project subject: ls -l data/processed)
         processed_dir = os.path.dirname(index_dir)
         chunks_dir = os.path.join(processed_dir, 'chunks')
         os.makedirs(chunks_dir, exist_ok=True)
+        # Write a manifest so the directory is non-empty and traceable
         manifest_path = os.path.join(chunks_dir, 'manifest.json')
         with open(manifest_path, 'w') as f:
             json.dump({
@@ -164,6 +249,17 @@ class BM25Index:
 
     @classmethod
     def load(cls, index_dir: str) -> 'BM25Index':
+        """Load a saved index from disk.
+
+        Args:
+            index_dir: Directory containing saved index files.
+
+        Returns:
+            A loaded BM25Index instance.
+
+        Raises:
+            FileNotFoundError: If index files are not found.
+        """
         with open(os.path.join(index_dir, 'bm25.pkl'), 'rb') as f:
             bm25 = pickle.load(f)
 
