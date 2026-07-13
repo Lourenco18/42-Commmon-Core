@@ -11,24 +11,20 @@ OUTPUT_ANSWERS = data/output/search_results_and_answer
 MAX_CHUNK       = 2000
 K              = 10
 
-.PHONY: install run debug clean deep-clean lint lint-strict \
+.PHONY: install run debug clean deep-clean flake flake-strict \
         prepare index test evaluate answer_dataset test_all
 
-# ── Dependencies ───────────────────────────────────────────────────────────────
 install:
-	uv venv && uv sync
+	rm -rf .venv uv.lock
+	uv venv
+	uv sync
 
-# ── Run / Debug ────────────────────────────────────────────────────────────────
 run:
 	uv run python -m student
 
 debug:
 	uv run python -m pdb -m student
 
-# ── Prepare: unzip vLLM + copy datasets ───────────────────────────────────────
-# Usage:
-#   make prepare                          (uses defaults above)
-#   make prepare VLLM_ZIP=path/to/file.zip DATASETS_SRC=path/to/datasets_public/public
 prepare:
 	@echo "==> Creating data directories..."
 	@mkdir -p $(DATA_RAW) $(DS_ANSWERED) $(DS_UNANSWERED) \
@@ -55,14 +51,12 @@ prepare:
 	fi
 	@echo "==> Done. Run 'make index' next."
 
-# ── Index ──────────────────────────────────────────────────────────────────────
 index:
 	@echo "==> Indexing vLLM repository (max_chunk_size=$(MAX_CHUNK))..."
 	uv run python -m student index \
 		--max_chunk_size $(MAX_CHUNK)
 	@echo "==> Index complete."
 
-# ── Test: search + evaluate both datasets ─────────────────────────────────────
 test:
 	@echo "==> Searching docs dataset..."
 	uv run python -m student search_dataset \
@@ -86,7 +80,6 @@ test:
 		--dataset_path $(DS_ANSWERED)/dataset_code_public.json \
 		--k $(K)
 
-# ── Generate LLM answers for both datasets ────────────────────────────────────
 answer_dataset:
 	@echo "==> Generating answers for docs dataset..."
 	uv run python -m student answer_dataset \
@@ -97,52 +90,31 @@ answer_dataset:
 		--student_search_results_path $(OUTPUT_SEARCH)/dataset_code_public.json \
 		--save_directory $(OUTPUT_ANSWERS)
 
-# ── Full pipeline: prepare → index → test → answer ────────────────────────────
 test_all: prepare index test answer_dataset
-	@echo ""
 	@echo "==> Full pipeline complete."
 	@echo "    Search results : $(OUTPUT_SEARCH)/"
 	@echo "    Answers        : $(OUTPUT_ANSWERS)/"
 
-# ── Lint ───────────────────────────────────────────────────────────────────────
-lint:
+flake:
 	flake8 .
 	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 	        --disallow-untyped-defs --check-untyped-defs
 
-lint-strict:
+flake-strict:
 	flake8 .
 	mypy . --strict
 
-# ── Clean ──────────────────────────────────────────────────────────────────────
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	find . -name "*.pyc" -delete 2>/dev/null || true
 
-# ── Deep Clean: remove everything not meant for submission ────────────────────
-# Keeps: src/, pyproject.toml, uv.lock, README.md, Makefile, .gitignore
-# Removes: data/, .venv/, generated outputs, caches, model weights
 deep-clean: clean
-	@echo "==> Removing generated data and outputs..."
-	@rm -rf data/processed data/output
-	@echo "==> Removing virtual environment..."
-	@rm -rf .venv
-	@echo "==> Removing model cache (HuggingFace weights)..."
-	@rm -rf ~/.cache/huggingface/hub/models--Qwen* 2>/dev/null || true
-	@echo ""
-	@echo "==> Project is clean and ready for submission."
-	@echo "    The following are intentionally kept:"
-	@echo "      src/           — source code"
-	@echo "      pyproject.toml — dependency manifest"
-	@echo "      uv.lock        — locked dependencies (required by subject)"
-	@echo "      README.md      — documentation"
-	@echo "      Makefile       — automation"
-	@echo "      .gitignore     — git configuration"
-	@echo ""
-	@echo "    The following are intentionally removed:"
-	@echo "      data/processed/ — generated index (re-run 'make index')"
-	@echo "      data/output/    — generated results (re-run 'make test')"
-	@echo "      .venv/          — virtual env (re-run 'make install')"
-	@echo "      HuggingFace cache — model weights (re-downloaded on first use)"
+	rm -rf data
+	rm -rf datasets_public
+	rm -rf vllm-0.10.1.zip
+	rm -rf src/student.egg-info
+	rm -rf .venv
+	rm -rf uv.lock
+	rm -rf ~/.cache/huggingface/hub/models--Qwen* 2>/dev/null || true
