@@ -1,4 +1,3 @@
-# Paths — override on the command line if needed
 DATA_RAW       = data/raw
 VLLM_DIR       = $(DATA_RAW)/vllm-0.10.1
 VLLM_ZIP       = vllm-0.10.1.zip
@@ -11,7 +10,7 @@ OUTPUT_ANSWERS = data/output/search_results_and_answer
 MAX_CHUNK       = 2000
 K              = 10
 
-.PHONY: install run debug clean deep-clean flake flake-strict \
+.PHONY: install run debug clean deep-clean lint lint-strict \
         prepare index test evaluate answer_dataset test_all
 
 install:
@@ -91,18 +90,19 @@ answer_dataset:
 		--save_directory $(OUTPUT_ANSWERS)
 
 test_all: prepare index test answer_dataset
+	@echo ""
 	@echo "==> Full pipeline complete."
 	@echo "    Search results : $(OUTPUT_SEARCH)/"
 	@echo "    Answers        : $(OUTPUT_ANSWERS)/"
 
-flake:
-	flake8 .
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
+lint:
+	flake8 src/student
+	mypy src/student --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 	        --disallow-untyped-defs --check-untyped-defs
 
-flake-strict:
-	flake8 .
-	mypy . --strict
+lint-strict:
+	flake8 src/student
+	mypy src/student --strict
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -111,10 +111,9 @@ clean:
 	find . -name "*.pyc" -delete 2>/dev/null || true
 
 deep-clean: clean
-	rm -rf data
-	rm -rf datasets_public
-	rm -rf vllm-0.10.1.zip
-	rm -rf src/student.egg-info
-	rm -rf .venv
-	rm -rf uv.lock
-	rm -rf ~/.cache/huggingface/hub/models--Qwen* 2>/dev/null || true
+	@rm -rf data/processed data/output
+	@rm -rf .venv
+	@rm -rf src/student.egg-info
+	@rm -rf evaluation
+	@rm -rf uv.lock
+	@rm -rf ~/.cache/huggingface/hub/models--Qwen* 2>/dev/null || true

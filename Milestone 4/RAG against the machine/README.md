@@ -195,10 +195,10 @@ data/datasets/AnsweredQuestions/dataset_docs_public.json \
 data/output/search_results_and_answer/dataset_docs_public.json
 ```
 
-**Step 8 — flake**
+**Step 8 — lint**
 
 ```bash
-make flake
+make lint
 # flake8 . → 0 errors
 # mypy .   → Success: no issues found
 ```
@@ -293,18 +293,14 @@ uv run python -m student answer_dataset \
 
 ## Resources
 
-- [Okapi BM25 — Wikipedia](https://en.wikipedia.org/wiki/Okapi_BM25)
-- [rank_bm25 library](https://github.com/dorianbrown/rank_bm25)
 - [Qwen3-0.6B — HuggingFace](https://huggingface.co/Qwen/Qwen3-0.6B)
 - [RAG paper — Lewis et al. 2020](https://arxiv.org/abs/2005.11401)
-- [Python Fire](https://github.com/google/python-fire)
-- [Pydantic v2](https://docs.pydantic.dev/latest/)
 - [vLLM project](https://github.com/vllm-project/vllm)
 - [Python `ast` module](https://docs.python.org/3/library/ast.html)
 
 ### AI Usage
 
-AI (Claude) was used to:
+AI was used to:
 - Draft the initial Pydantic model structure and type annotations.
 - Suggest the AST-based Python chunking approach and its fallback logic.
 - Format docstrings to PEP 257 / Google style consistently.

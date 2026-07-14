@@ -1,59 +1,50 @@
-"""Answer generation system using Qwen/Qwen3-0.6B.
-
-This module handles loading the LLM and generating answers
-based on retrieved context chunks.
-"""
-
+import os
 from typing import Any, Dict, List, Optional
 
 
 class AnswerGenerator:
-    """Generates natural language answers using a local LLM.
-
-    Uses Qwen/Qwen3-0.6B for inference via the transformers library.
-
-    Attributes:
-        model_name: HuggingFace model identifier.
-        max_context_length: Maximum characters per context chunk.
-        tokenizer: The loaded tokenizer instance.
-        model: The loaded model instance.
-    """
-
     def __init__(
         self,
         model_name: str = 'Qwen/Qwen3-0.6B',
-        max_context_length: int = 2000,
+        max_context_length: int = 500,
+        max_sources: int = 3,
+        max_new_tokens: int = 128,
     ) -> None:
-        """Initialize the AnswerGenerator.
-
-        Args:
-            model_name: HuggingFace model name to load.
-            max_context_length: Max chars per retrieved context chunk.
-        """
         self.model_name = model_name
         self.max_context_length = max_context_length
+        self.max_sources = max_sources
+        self.max_new_tokens = max_new_tokens
         self.tokenizer: Optional[Any] = None
         self.model: Optional[Any] = None
 
     def load(self) -> None:
-        """Load the tokenizer and model into memory.
-
-        Raises:
-            ImportError: If transformers or torch are not installed.
-            OSError: If the model cannot be loaded from HuggingFace.
-        """
+        import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        if torch.backends.mps.is_available():
+            device = 'mps'
+            dtype = torch.float16
+        elif torch.cuda.is_available():
+            device = 'cuda'
+            dtype = torch.float16
+        else:
+            device = 'cpu'
+            dtype = torch.float32
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_name, trust_remote_code=True
         )
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
-            dtype='float32',
+            torch_dtype=dtype,
             trust_remote_code=True,
         )
         assert self.model is not None
+        self.model = self.model.to(device)
         self.model.eval()
+
+        import torch
+        torch.set_grad_enabled(False)
 
     def _build_prompt(
         self,
@@ -61,52 +52,39 @@ class AnswerGenerator:
         sources: List[Dict[str, Any]],
         repo_path: str,
     ) -> str:
-        """Build the prompt for the LLM from question and context.
-
-        Args:
-            question: The question to answer.
-            sources: List of source dicts with file_path, first/last char idx.
-            repo_path: Base path to the repository for reading files.
-
-        Returns:
-            A formatted prompt string.
-        """
         context_parts: List[str] = []
 
-        for src in sources:
+        for src in sources[:self.max_sources]:
             file_path = src.get('file_path', '')
             start = src.get('first_character_index', 0)
             end = src.get('last_character_index', 0)
 
             try:
                 full_path = (
-                    file_path if file_path.startswith('/')
-                    else f"{repo_path}/{file_path}"
+                    file_path if os.path.isabs(file_path)
+                    else file_path
                 )
-                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(
+                    full_path,
+                    'r',
+                    encoding='utf-8',
+                    errors='ignore',
+                ) as f:
                     content = f.read()
                 snippet = content[start:end][:self.max_context_length]
                 context_parts.append(
-                    f"[File: {file_path} @ {start}-{end}]\n{snippet}"
+                    f"[{os.path.basename(file_path)}]\n{snippet}"
                 )
             except OSError:
                 continue
 
-        context_str = '\n\n---\n\n'.join(context_parts)
+        context_str = '\n---\n'.join(context_parts)
 
         prompt = (
-            "You are a technical assistant for the vLLM codebase. "
-            "Answer the question using ONLY the provided context below.\n"
-            "Your answer must be:\n"
-            "- Self-contained: readable and understandable without "
-            "seeing the original question.\n"
-            "- Source-grounded: mention the file(s) the information "
-            "comes from.\n"
-            "- Faithful: do not add information not present in the "
-            "context (no hallucination).\n"
-            "- Relevant: directly answer what was asked.\n\n"
+            "Answer the question using only the context below. "
+            "Be concise.\n\n"
             f"Context:\n{context_str}\n\n"
-            f"Question: {question}\n\n"
+            f"Question: {question}\n"
             "Answer:"
         )
         return prompt
@@ -116,40 +94,32 @@ class AnswerGenerator:
         question: str,
         sources: List[Dict[str, Any]],
         repo_path: str,
-        max_new_tokens: int = 256,
+        max_new_tokens: Optional[int] = None,
     ) -> str:
-        """Generate an answer given a question and retrieved sources.
-
-        Args:
-            question: The question to answer.
-            sources: List of source dicts (file_path, first/last char idx).
-            repo_path: Base path to the repository.
-            max_new_tokens: Maximum tokens to generate.
-
-        Returns:
-            The generated answer as a string.
-        """
         if self.model is None or self.tokenizer is None:
             self.load()
 
         import torch
 
+        tokens_to_gen = max_new_tokens or self.max_new_tokens
         prompt = self._build_prompt(question, sources, repo_path)
 
         inputs = self.tokenizer(  # type: ignore[misc]
             prompt,
             return_tensors='pt',
             truncation=True,
-            max_length=2048,
+            max_length=1024,
         )
 
         assert self.model is not None
         assert self.tokenizer is not None
+        device = next(self.model.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
 
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=max_new_tokens,
+                max_new_tokens=tokens_to_gen,
                 do_sample=False,
                 temperature=1.0,
                 pad_token_id=self.tokenizer.eos_token_id,

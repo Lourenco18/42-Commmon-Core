@@ -29,7 +29,8 @@ where = ["src"]
 package = true
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
+exclude = ["^.venv/", "^data/"]
 warn_return_any = true
 warn_unused_ignores = true
 ignore_missing_imports = true
