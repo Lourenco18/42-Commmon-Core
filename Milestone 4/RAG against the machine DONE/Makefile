@@ -11,7 +11,7 @@ MAX_CHUNK       = 2000
 K              = 10
 
 .PHONY: install run debug clean deep-clean lint lint-strict \
-        prepare index test evaluate answer_dataset test_all
+        prepare index  
 
 install:
 	rm -rf .venv uv.lock
@@ -78,31 +78,14 @@ test:
 		--student_results_path $(OUTPUT_SEARCH)/dataset_code_public.json \
 		--dataset_path $(DS_ANSWERED)/dataset_code_public.json \
 		--k $(K)
-
-answer_dataset:
-	@echo "==> Generating answers for docs dataset..."
-	uv run python -m student answer_dataset \
-		--student_search_results_path $(OUTPUT_SEARCH)/dataset_docs_public.json \
-		--save_directory $(OUTPUT_ANSWERS)
-	@echo "==> Generating answers for code dataset..."
-	uv run python -m student answer_dataset \
-		--student_search_results_path $(OUTPUT_SEARCH)/dataset_code_public.json \
-		--save_directory $(OUTPUT_ANSWERS)
-
-test_all: prepare index test answer_dataset
-	@echo ""
-	@echo "==> Full pipeline complete."
-	@echo "    Search results : $(OUTPUT_SEARCH)/"
-	@echo "    Answers        : $(OUTPUT_ANSWERS)/"
-
 lint:
-	flake8 src/student
-	mypy src/student --warn-return-any --warn-unused-ignores --ignore-missing-imports \
+	flake8 .
+	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 	        --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	flake8 src/student
-	mypy src/student --strict
+	flake8 .
+	mypy . --strict
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -111,9 +94,8 @@ clean:
 	find . -name "*.pyc" -delete 2>/dev/null || true
 
 deep-clean: clean
-	@rm -rf data/processed data/output
+	@rm -rf data
 	@rm -rf .venv
 	@rm -rf src/student.egg-info
 	@rm -rf evaluation
-	@rm -rf uv.lock
 	@rm -rf ~/.cache/huggingface/hub/models--Qwen* 2>/dev/null || true

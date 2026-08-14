@@ -1,9 +1,11 @@
 import json
 import os
+import pickle
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type, TypeVar
 
 import fire
+from pydantic import BaseModel, ValidationError
 from tqdm import tqdm
 
 from student.indexer import BM25Index
@@ -21,6 +23,8 @@ DEFAULT_INDEX_DIR = "data/processed/bm25_index"
 DEFAULT_REPO_SUBDIR = "vllm-0.10.1"
 DEFAULT_MAX_CHUNK_SIZE = 2000
 
+ModelT = TypeVar('ModelT', bound=BaseModel)
+
 
 def _load_index(index_dir: str = DEFAULT_INDEX_DIR) -> BM25Index:
     if not os.path.exists(os.path.join(index_dir, 'bm25.pkl')):
@@ -30,7 +34,71 @@ def _load_index(index_dir: str = DEFAULT_INDEX_DIR) -> BM25Index:
             file=sys.stderr
         )
         sys.exit(1)
-    return BM25Index.load(index_dir)
+    try:
+        return BM25Index.load(index_dir)
+    except (OSError, pickle.UnpicklingError, json.JSONDecodeError) as exc:
+        print(f"Error: failed to load index at '{index_dir}': {exc}",
+              file=sys.stderr)
+        sys.exit(1)
+
+
+def _load_json_model(path: str, model: Type[ModelT]) -> ModelT:
+    """Read a JSON file and validate it against a pydantic model.
+
+    Exits with a clear, user-facing error message (no traceback) on any
+    of the degenerate/erroneous inputs the CLI must tolerate: missing
+    file, unreadable file, malformed JSON, or a JSON payload that does
+    not match the expected schema.
+    """
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: file not found: '{path}'", file=sys.stderr)
+        sys.exit(1)
+    except OSError as exc:
+        print(f"Error: could not read '{path}': {exc}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as exc:
+        print(f"Error: '{path}' is not valid JSON ({exc}).", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        return model.model_validate(raw)
+    except ValidationError as exc:
+        print(
+            f"Error: '{path}' does not match the expected format:\n{exc}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+
+def _validate_k(k: int) -> int:
+    if k <= 0:
+        print(
+            f"Error: --k must be a positive integer, got {k}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return k
+
+
+def _write_json(
+    output: BaseModel, save_directory: str, source_path: str
+) -> str:
+    try:
+        os.makedirs(save_directory, exist_ok=True)
+        out_filename = os.path.basename(source_path)
+        out_path = os.path.join(save_directory, out_filename)
+        with open(out_path, 'w', encoding='utf-8') as f:
+            f.write(output.model_dump_json(indent=2))
+        return out_path
+    except OSError as exc:
+        print(
+            f"Error: could not write output to '{save_directory}': {exc}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 class RAGSystem:
@@ -59,6 +127,11 @@ class RAGSystem:
         k: int = 10,
         index_dir: str = DEFAULT_INDEX_DIR,
     ) -> None:
+        k = _validate_k(k)
+        if not query or not query.strip():
+            print("Error: query must be a non-empty string.",
+                  file=sys.stderr)
+            sys.exit(1)
         idx = _load_index(index_dir)
         results = idx.search(query, k=k)
 
@@ -82,12 +155,9 @@ class RAGSystem:
         k: int = 10,
         index_dir: str = DEFAULT_INDEX_DIR,
     ) -> None:
+        k = _validate_k(k)
         idx = _load_index(index_dir)
-
-        with open(dataset_path, 'r', encoding='utf-8') as f:
-            raw = json.load(f)
-
-        dataset = RagDataset.model_validate(raw)
+        dataset = _load_json_model(dataset_path, RagDataset)
         search_results: List[MinimalSearchResults] = []
 
         for q in tqdm(dataset.rag_questions, desc="Searching"):
@@ -110,12 +180,7 @@ class RAGSystem:
             ))
 
         output = StudentSearchResults(search_results=search_results, k=k)
-        os.makedirs(save_directory, exist_ok=True)
-        out_filename = os.path.basename(dataset_path)
-        out_path = os.path.join(save_directory, out_filename)
-
-        with open(out_path, 'w', encoding='utf-8') as f:
-            f.write(output.model_dump_json(indent=2))
+        out_path = _write_json(output, save_directory, dataset_path)
 
         print(f"Saved student_search_results to {out_path}")
 
@@ -127,6 +192,12 @@ class RAGSystem:
     ) -> None:
         from student.generator import AnswerGenerator
 
+        k = _validate_k(k)
+        if not query or not query.strip():
+            print("Error: query must be a non-empty string.",
+                  file=sys.stderr)
+            sys.exit(1)
+
         idx = _load_index(index_dir)
         results = idx.search(query, k=k)
 
@@ -135,8 +206,13 @@ class RAGSystem:
             return
 
         print(f"Loading LLM ({DEFAULT_MAX_CHUNK_SIZE} chars max context)...")
-        gen = AnswerGenerator()
-        gen.load()
+        gen = AnswerGenerator(max_context_length=DEFAULT_MAX_CHUNK_SIZE)
+        try:
+            gen.load()
+        except (OSError, ValueError) as exc:
+            print(f"Error: could not load model "
+                  f"'{gen.model_name}': {exc}", file=sys.stderr)
+            sys.exit(1)
 
         print(f"\nQuestion: {query}\n")
         answer_text = gen.generate(
@@ -155,18 +231,21 @@ class RAGSystem:
         from student.generator import AnswerGenerator
 
         idx = _load_index(index_dir)
-
-        with open(student_search_results_path, 'r', encoding='utf-8') as f:
-            raw = json.load(f)
-
-        student_results = StudentSearchResults.model_validate(raw)
+        student_results = _load_json_model(
+            student_search_results_path, StudentSearchResults
+        )
 
         print(f"Loaded {len(student_results.search_results)} questions "
               f"from {student_search_results_path}")
         print("Loading LLM...")
 
-        gen = AnswerGenerator()
-        gen.load()
+        gen = AnswerGenerator(max_context_length=DEFAULT_MAX_CHUNK_SIZE)
+        try:
+            gen.load()
+        except (OSError, ValueError) as exc:
+            print(f"Error: could not load model "
+                  f"'{gen.model_name}': {exc}", file=sys.stderr)
+            sys.exit(1)
 
         answered: List[MinimalAnswer] = []
 
@@ -203,12 +282,9 @@ class RAGSystem:
             search_results=answered,
             k=student_results.k,
         )
-        os.makedirs(save_directory, exist_ok=True)
-        out_filename = os.path.basename(student_search_results_path)
-        out_path = os.path.join(save_directory, out_filename)
-
-        with open(out_path, 'w', encoding='utf-8') as f:
-            f.write(output.model_dump_json(indent=2))
+        out_path = _write_json(
+            output, save_directory, student_search_results_path
+        )
 
         print(f"Saved student_search_results_and_answer to {out_path}")
 
@@ -219,14 +295,11 @@ class RAGSystem:
         k: int = 10,
         max_context_length: int = 2000,
     ) -> None:
-        with open(student_results_path, 'r', encoding='utf-8') as f:
-            student_raw = json.load(f)
-
-        with open(dataset_path, 'r', encoding='utf-8') as f:
-            gt_raw = json.load(f)
-
-        student_data = StudentSearchResults.model_validate(student_raw)
-        gt_dataset = RagDataset.model_validate(gt_raw)
+        k = _validate_k(k)
+        student_data = _load_json_model(
+            student_results_path, StudentSearchResults
+        )
+        gt_dataset = _load_json_model(dataset_path, RagDataset)
 
         gt_lookup: Dict[str, Any] = {}
         for q in gt_dataset.rag_questions:

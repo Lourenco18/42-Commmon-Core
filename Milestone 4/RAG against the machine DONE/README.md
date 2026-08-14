@@ -156,6 +156,18 @@ Expected: 5 results with `file_path`, character range, and score.
 
 ```bash
 make test
+
+chmod +x moulinette_pkg/moulinette-ubuntu
+
+./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results \
+    data/output/search_results/dataset_docs_public.json \
+    data/datasets/AnsweredQuestions/dataset_docs_public.json \
+    --k 10 --max_context_length 2000 --threshold 0.80
+
+./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results \
+    data/output/search_results/dataset_code_public.json \
+    data/datasets/AnsweredQuestions/dataset_code_public.json \
+    --k 10 --max_context_length 2000 --threshold 0.50
 ```
 
 Expected results:

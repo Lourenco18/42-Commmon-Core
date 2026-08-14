@@ -40,7 +40,10 @@ class AnswerGenerator:
             trust_remote_code=True,
         )
         assert self.model is not None
-        self.model = self.model.to(device)
+        # transformers/accelerate wrap `to` with a decorator whose stub
+        # signature mypy resolves incorrectly for a plain device string;
+        # this is a stub-only mismatch, not a runtime issue.
+        self.model = self.model.to(device)  # type: ignore[arg-type]
         self.model.eval()
 
         import torch
@@ -60,10 +63,17 @@ class AnswerGenerator:
             end = src.get('last_character_index', 0)
 
             try:
-                full_path = (
-                    file_path if os.path.isabs(file_path)
-                    else file_path
-                )
+                full_path = file_path
+                if not os.path.isabs(full_path) and not os.path.exists(
+                    full_path
+                ):
+                    # Chunk paths are stored relative to the CWD used at
+                    # indexing time. If that no longer resolves (e.g. the
+                    # CLI is invoked from a different directory), fall
+                    # back to resolving against the indexed repo root.
+                    candidate = os.path.join(repo_path, file_path)
+                    if os.path.exists(candidate):
+                        full_path = candidate
                 with open(
                     full_path,
                     'r',
