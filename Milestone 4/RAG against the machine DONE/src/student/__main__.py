@@ -2,7 +2,7 @@ import json
 import os
 import pickle
 import sys
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
 import fire
 from pydantic import BaseModel, ValidationError
@@ -154,13 +154,29 @@ class RAGSystem:
         save_directory: str = "data/output/search_results",
         k: int = 10,
         index_dir: str = DEFAULT_INDEX_DIR,
+        limit: Optional[int] = None,
     ) -> None:
         k = _validate_k(k)
         idx = _load_index(index_dir)
         dataset = _load_json_model(dataset_path, RagDataset)
+        questions = dataset.rag_questions
+        if limit is not None:
+            if limit <= 0:
+                print(
+                    f"Error: --limit must be a positive integer, "
+                    f"got {limit}.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            questions = questions[:limit]
+            print(
+                f"--limit={limit}: processing {len(questions)} of "
+                f"{len(dataset.rag_questions)} questions "
+                f"(dev/testing mode)."
+            )
         search_results: List[MinimalSearchResults] = []
 
-        for q in tqdm(dataset.rag_questions, desc="Searching"):
+        for q in tqdm(questions, desc="Searching"):
             question_str = str(q.question)
             question_id = str(q.question_id)
 
@@ -227,6 +243,7 @@ class RAGSystem:
         student_search_results_path: str,
         save_directory: str = "data/output/search_results_and_answer",
         index_dir: str = DEFAULT_INDEX_DIR,
+        limit: Optional[int] = None,
     ) -> None:
         from student.generator import AnswerGenerator
 
@@ -234,6 +251,22 @@ class RAGSystem:
         student_results = _load_json_model(
             student_search_results_path, StudentSearchResults
         )
+        results_to_answer = student_results.search_results
+        if limit is not None:
+            if limit <= 0:
+                print(
+                    f"Error: --limit must be a positive integer, "
+                    f"got {limit}.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            results_to_answer = results_to_answer[:limit]
+            print(
+                f"--limit={limit}: generating answers for "
+                f"{len(results_to_answer)} of "
+                f"{len(student_results.search_results)} questions "
+                f"(dev/testing mode)."
+            )
 
         print(f"Loaded {len(student_results.search_results)} questions "
               f"from {student_search_results_path}")
@@ -250,7 +283,7 @@ class RAGSystem:
         answered: List[MinimalAnswer] = []
 
         for i, sr in enumerate(
-            tqdm(student_results.search_results, desc="Answering")
+            tqdm(results_to_answer, desc="Answering")
         ):
             sources_dicts: List[Dict[str, Any]] = [
                 {
@@ -273,10 +306,10 @@ class RAGSystem:
             ))
             if (i + 1) % 10 == 0:
                 print(f"Processed {i + 1} of "
-                      f"{len(student_results.search_results)} questions")
+                      f"{len(results_to_answer)} questions")
 
         print(f"Processed {len(answered)} of "
-              f"{len(student_results.search_results)} questions")
+              f"{len(results_to_answer)} questions")
 
         output = StudentSearchResultsAndAnswer(
             search_results=answered,

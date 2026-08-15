@@ -36,3 +36,16 @@ warn_unused_ignores = true
 ignore_missing_imports = true
 disallow_untyped_defs = true
 check_untyped_defs = true
+
+# transformers does not ship complete type stubs for its Auto* factory
+# classes (e.g. AutoTokenizer.from_pretrained / AutoModelForCausalLM.
+# from_pretrained). Depending on the exact transformers/mypy version
+# combination, mypy may or may not be able to see a (partial, untyped)
+# signature for these calls, which makes `disallow_untyped_calls`
+# inconsistent across environments even with identical pinned versions.
+# Disabling it only for this module is safer and more portable than
+# inline `# type: ignore` comments, which would be flagged as unused
+# on environments where the issue does not manifest.
+[[tool.mypy.overrides]]
+module = "transformers.*"
+disallow_untyped_calls = false

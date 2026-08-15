@@ -11,7 +11,8 @@ MAX_CHUNK       = 2000
 K              = 10
 
 .PHONY: install run debug clean deep-clean lint lint-strict \
-        prepare index  
+        prepare index test answer_dataset test_all \
+        exam-retrieval exam-answer exam-edge-cases exam-all
 
 install:
 	rm -rf .venv uv.lock
@@ -78,14 +79,28 @@ test:
 		--student_results_path $(OUTPUT_SEARCH)/dataset_code_public.json \
 		--dataset_path $(DS_ANSWERED)/dataset_code_public.json \
 		--k $(K)
+
+answer_dataset:
+	@echo "==> Generating answers for docs dataset..."
+	uv run python -m student answer_dataset \
+		--student_search_results_path $(OUTPUT_SEARCH)/dataset_docs_public.json \
+		--save_directory $(OUTPUT_ANSWERS)
+	@echo "==> Generating answers for code dataset..."
+	uv run python -m student answer_dataset \
+		--student_search_results_path $(OUTPUT_SEARCH)/dataset_code_public.json \
+		--save_directory $(OUTPUT_ANSWERS)
+
+test_all: prepare index test answer_dataset
+	@echo "==> Full pipeline complete."
+
 lint:
-	flake8 .
-	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
+	uv run flake8 .
+	uv run mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 	        --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	flake8 .
-	mypy . --strict
+	uv run flake8 .
+	uv run mypy . --strict
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -99,3 +114,42 @@ deep-clean: clean
 	@rm -rf src/student.egg-info
 	@rm -rf evaluation
 	@rm -rf ~/.cache/huggingface/hub/models--Qwen* 2>/dev/null || true
+
+EXAM_DIR       = exams_pkg/exams/scripts
+MOULINETTE_BIN = moulinette_pkg/moulinette-ubuntu
+
+exam-retrieval:
+	@if [ ! -f "$(EXAM_DIR)/exam_retrieval.sh" ]; then \
+		echo "exams/ not found at $(EXAM_DIR) — skipping."; \
+		echo "This target is for local rehearsal only; see README."; \
+	else \
+		"$(EXAM_DIR)/exam_retrieval.sh" \
+			--student-path . \
+			--moulinette-path "$(MOULINETTE_BIN)" \
+			--module-name student; \
+	fi
+
+exam-answer:
+	@if [ ! -f "$(EXAM_DIR)/exam_answer.sh" ]; then \
+		echo "exams/ not found at $(EXAM_DIR) — skipping."; \
+		echo "This target is for local rehearsal only; see README."; \
+	else \
+		"$(EXAM_DIR)/exam_answer.sh" \
+			--student-path . \
+			--moulinette-path "$(MOULINETTE_BIN)" \
+			--module-name student; \
+	fi
+
+exam-edge-cases:
+	@if [ ! -f "$(EXAM_DIR)/exam_edge_cases.sh" ]; then \
+		echo "exams/ not found at $(EXAM_DIR) — skipping."; \
+		echo "This target is for local rehearsal only; see README."; \
+	else \
+		"$(EXAM_DIR)/exam_edge_cases.sh" \
+			--student-path . \
+			--module-name student; \
+	fi
+
+exam-all: exam-retrieval exam-edge-cases
+	@echo "==> exam-retrieval and exam-edge-cases done."
+	@echo "==> Run 'make exam-answer' separately (it needs your input to pick 3 questions)."
