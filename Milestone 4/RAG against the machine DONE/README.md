@@ -72,65 +72,55 @@ Maximum chunk size is **2000 characters** by default, configurable via `--max_ch
 - Python 3.10 or later
 - [`uv`](https://github.com/astral-sh/uv) package manager
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
 ### Installation
 
 ```bash
 make install
 ```
 
-### For evaluators / correctors
+### Local rehearsal with the real exam scripts
 
-This project's Python package is named **`student`** (not `src`). Both of
-these work identically — no flag needed:
+To rehearse with the exact scripts and binary used for grading, drop
+the school's attachments straight into this project's root — no need
+to unzip or move anything by hand:
 
-```bash
-uv run python -m student search "How to configure OpenAI server?" --k 10
-uv run python -m src     search "How to configure OpenAI server?" --k 10
+```
+RAG against the machine DONE/     <- this repo, unzip attachments here
+  datasets_private.zip
+  exams.zip
+  moulinette_pkg.zip
+  vllm-0.10.1.zip
+  ... (src/, Makefile, README.md, etc.)
 ```
 
-`python -m src` is provided as a thin compatibility shim
-(`src/__main__.py`) that forwards to `student.__main__`, so it matches
-the commands used in the official evaluation sheet exactly, with
-nothing to configure.
-
-If you are running the official exam scripts (`exams/scripts/*.sh`,
-provided separately by the school) against this repo, the module name
-is `student`:
+Then just run:
 
 ```bash
-./exams/scripts/exam_retrieval.sh \
-    --student-path ./student \
-    --moulinette-path ./moulinette-ubuntu \
-    --module-name student
-
-./exams/scripts/exam_edge_cases.sh \
-    --student-path ./student \
-    --module-name student
-```
-
-(`--module-name` defaults to `src`; since `python -m src` also works
-here via the shim above, the scripts will actually succeed either way
-— the explicit flag is just belt-and-braces.)
-
-The exam scripts expect this checkout at `<eval-root>/student/`, with
-the private datasets unzipped at `<eval-root>/data/datasets/private/`
-(sibling to `student/`, per the evaluation sheet's guidelines — not
-inside this repo). Indexing still reads from `data/raw/vllm-0.10.1`
-**inside** this repo, so run `make prepare` here first.
-
-If you have the `exams/` folder and moulinette binary checked out as
-siblings of this repo (for your own rehearsal, not part of grading),
-you can also just run:
-
-```bash
+make install
+make prepare
+make index
 make exam-retrieval    # wraps exam_retrieval.sh
 make exam-edge-cases   # wraps exam_edge_cases.sh
 make exam-answer       # wraps exam_answer.sh (interactive)
 ```
+
+`make prepare` extracts `datasets_private.zip`, `exams.zip`, and
+`moulinette_pkg.zip` in place (whatever their internal folder layout
+turns out to be), and stages the private datasets exactly where
+`exam_retrieval.sh` looks for them — that path is computed by the
+script itself as two directories above wherever `exam_retrieval.sh`
+ends up, so this is done by locating the file, not by assuming a fixed
+structure. The `exam-*` targets locate `exam_retrieval.sh` and the
+moulinette binary the same way, so this works regardless of whether
+the zips were already extracted, extracted flat at the root, or
+checked out as siblings of this repo instead. Re-running `make
+prepare` is safe — already-extracted material is left alone.
+
+None of `exams.zip`/`exams_pkg/`/`exams/`, `moulinette_pkg.zip`/
+`moulinette_pkg/`, or `datasets_private.zip`/`private/` are part of
+this repository (see `.gitignore`) — they're school-provided grading
+material, and `private/` in particular contains the ground-truth
+answers, which should never end up committed.
 
 ### Step-by-step testing guide
 
@@ -280,12 +270,6 @@ data/output/search_results_and_answer/dataset_docs_public.json
 
 ```bash
 make lint
-# flake8 . → 0 errors
-# mypy .   → Success: no issues found
-
-make lint-strict
-# flake8 . → 0 errors
-# mypy . --strict → Success: no issues found
 ```
 
 **Step 9 — Clean for submission**
@@ -303,18 +287,15 @@ ls -1
 make install          # install dependencies
 make prepare          # set up data/raw/ and data/datasets/
 make index            # build BM25 index
-make test             # search + evaluate both datasets (public)
-make answer_dataset   # generate LLM answers for both datasets (public)
-make test_all         # prepare + index + test + answer_dataset, in one shot
-make lint             # flake8 + mypy (subject-required flags)
-make lint-strict      # flake8 + mypy --strict
+make test             # search + evaluate both 
+make answer_dataset   # generate LLM answers for 
+make test_all         # prepare + index + test + 
+make lint             # flake8 + mypy 
 make deep-clean       # clean for submission
 
-# Local rehearsal only — needs exams/ + moulinette checked out as
-# siblings of this repo (see "For evaluators / correctors" above):
 make exam-retrieval   # wraps exam_retrieval.sh
 make exam-edge-cases  # wraps exam_edge_cases.sh
-make exam-answer      # wraps exam_answer.sh (interactive)
+make exam-answer      # wraps exam_answer.sh 
 ```
 
 ---
