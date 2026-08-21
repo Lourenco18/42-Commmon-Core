@@ -75,33 +75,20 @@ Maximum chunk size is **2000 characters** by default, configurable via `--max_ch
 ### Installation
 
 ```bash
+mkdir -p /sgoinfre/dasantos/.cache/uv
+export UV_CACHE_DIR=/sgoinfre/dasantos/.cache/uv
 make install
 ```
 
 ### Local rehearsal with the real exam scripts
 
-To rehearse with the exact scripts and binary used for grading, drop
-the school's attachments straight into this project's root — no need
-to unzip or move anything by hand:
-
-```
-RAG against the machine DONE/     <- this repo, unzip attachments here
-  datasets_private.zip
-  exams.zip
-  moulinette_pkg.zip
-  vllm-0.10.1.zip
-  ... (src/, Makefile, README.md, etc.)
-```
-
-Then just run:
-
 ```bash
 make install
 make prepare
 make index
-make exam-retrieval    # wraps exam_retrieval.sh
-make exam-edge-cases   # wraps exam_edge_cases.sh
-make exam-answer       # wraps exam_answer.sh (interactive)
+make exam-retrieval 
+make exam-edge-cases
+make exam-answer
 ```
 
 `make prepare` extracts `datasets_private.zip`, `exams.zip`, and
@@ -124,178 +111,22 @@ answers, which should never end up committed.
 
 ### Step-by-step testing guide
 
-**Step 1 — Verify the project structure**
-
-```bash
-ls -1
-```
-
-Expected at the project root:
-
-```
-Makefile
-README.md
-pyproject.toml
-uv.lock
-src/
-```
-
-**Step 2 — Install dependencies**
-
 ```bash
 make install
-
-uv pip list | grep student
-# student   0.1.0   /path/to/project
-
-uv run python -m student --help
-# COMMANDS: index | search | search_dataset | answer | answer_dataset | evaluate
-```
-
-**Step 3 — Prepare the data**
-
-```bash
-make prepare
-```
-
-Verify:
-
-```bash
-ls data/raw/
-# vllm-0.10.1/
-
-ls data/datasets/AnsweredQuestions/
-# dataset_code_public.json   dataset_docs_public.json
-
-ls data/datasets/UnansweredQuestions/
-# dataset_code_public.json   dataset_docs_public.json
-```
-
-**Step 4 — Build the index**
-
-```bash
-make index
-```
-
-Verify:
-
-```bash
-ls data/processed/
-# bm25_index/   chunks/
-```
-
-**Step 5 — Test a single search query**
-
-```bash
-uv run python -m student search "How does vLLM handle tokenization?" --k 5
-```
-
-Expected: 5 results with `file_path`, character range, and score.
-
-**Step 6 — Run the full evaluation (public datasets, own `evaluate` command)**
-
-```bash
-make test
-```
-
-Expected results:
-
-```
-Docs dataset — Recall@5: 0.830   (target ≥ 0.80) ✓
-Code dataset — Recall@5: 0.590   (target ≥ 0.50) ✓
-```
-
-**Step 6b — Cross-check with the official moulinette (optional, local-only)**
-
-`moulinette_pkg/` (the compiled binaries) is provided by the school for
-self-testing only — it is **not** part of this repository (see
-`.gitignore`). If you have it locally, place it next to this project
-and run:
-
-```bash
-chmod +x ../moulinette_pkg/moulinette-ubuntu   # once
-
-../moulinette_pkg/moulinette-ubuntu evaluate_student_search_results \
-    data/output/search_results/dataset_docs_public.json \
-    data/datasets/AnsweredQuestions/dataset_docs_public.json \
-    --k 10 --max_context_length 2000 --threshold 0.80
-
-../moulinette_pkg/moulinette-ubuntu evaluate_student_search_results \
-    data/output/search_results/dataset_code_public.json \
-    data/datasets/AnsweredQuestions/dataset_code_public.json \
-    --k 10 --max_context_length 2000 --threshold 0.50
-```
-
-On macOS the binary is Linux-only (ELF); run it via Docker instead:
-
-```bash
-docker run --rm --platform linux/amd64 -v "$(pwd)/..":/work -w /work/student ubuntu:24.04 \
-  ../moulinette_pkg/moulinette-ubuntu evaluate_student_search_results \
-  data/output/search_results/dataset_docs_public.json \
-  data/datasets/AnsweredQuestions/dataset_docs_public.json \
-  --k 10 --max_context_length 2000 --threshold 0.80
-```
-
-**Step 7 — Generate LLM answers**
-
-```bash
-make answer_dataset
-```
-
-Verify:
-
-```bash
-ls data/output/search_results_and_answer/
-# dataset_code_public.json   dataset_docs_public.json
-```
-
-Inspect one answer:
-
-```bash
-i=42
-jq -s --argjson i "$i" '
-. as [$docs, $results]
-| {
-    index: $i,
-    question: $docs.rag_questions[$i].question,
-    expected: $docs.rag_questions[$i].answer,
-    predicted: $results.search_results[$i].answer
-  }
-' \
-data/datasets/AnsweredQuestions/dataset_docs_public.json \
-data/output/search_results_and_answer/dataset_docs_public.json
-```
-
-**Step 8 — lint**
-
-```bash
-make lint
-```
-
-**Step 9 — Clean for submission**
-
-```bash
-make deep-clean
-
-ls -1
-# Makefile  README.md  pyproject.toml  uv.lock  src/  .gitignore
-```
-
-### Quick reference
-
-```bash
-make install          # install dependencies
+make lint          # install dependencies
 make prepare          # set up data/raw/ and data/datasets/
 make index            # build BM25 index
-make test             # search + evaluate both 
-make answer_dataset   # generate LLM answers for 
-make test_all         # prepare + index + test + 
-make lint             # flake8 + mypy 
-make deep-clean       # clean for submission
+# Search a single query
+uv run python -m student search "How to configure OpenAI server?" --k 10
 
-make exam-retrieval   # wraps exam_retrieval.sh
-make exam-edge-cases  # wraps exam_edge_cases.sh
-make exam-answer      # wraps exam_answer.sh 
+# Answer a single query
+uv run python -m student answer "How to configure OpenAI server?" --k 10
+make exam-edge-cases  
+make exam-retrieval 
+make exam-answer   
+   
+make deep-clean  
+  
 ```
 
 ---

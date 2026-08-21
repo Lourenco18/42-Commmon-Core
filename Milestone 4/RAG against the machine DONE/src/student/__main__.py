@@ -205,6 +205,7 @@ class RAGSystem:
         query: str,
         k: int = 10,
         index_dir: str = DEFAULT_INDEX_DIR,
+        max_new_tokens: int = 256,
     ) -> None:
         from student.generator import AnswerGenerator
 
@@ -222,7 +223,10 @@ class RAGSystem:
             return
 
         print(f"Loading LLM ({DEFAULT_MAX_CHUNK_SIZE} chars max context)...")
-        gen = AnswerGenerator(max_context_length=DEFAULT_MAX_CHUNK_SIZE)
+        gen = AnswerGenerator(
+            max_context_length=DEFAULT_MAX_CHUNK_SIZE,
+            max_new_tokens=max_new_tokens,
+        )
         try:
             gen.load()
         except (OSError, ValueError) as exc:
@@ -244,6 +248,7 @@ class RAGSystem:
         save_directory: str = "data/output/search_results_and_answer",
         index_dir: str = DEFAULT_INDEX_DIR,
         limit: Optional[int] = None,
+        max_new_tokens: int = 256,
     ) -> None:
         from student.generator import AnswerGenerator
 
@@ -272,7 +277,10 @@ class RAGSystem:
               f"from {student_search_results_path}")
         print("Loading LLM...")
 
-        gen = AnswerGenerator(max_context_length=DEFAULT_MAX_CHUNK_SIZE)
+        gen = AnswerGenerator(
+            max_context_length=DEFAULT_MAX_CHUNK_SIZE,
+            max_new_tokens=max_new_tokens,
+        )
         try:
             gen.load()
         except (OSError, ValueError) as exc:

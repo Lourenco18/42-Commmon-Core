@@ -12,7 +12,7 @@ MAX_CHUNK       = 2000
 K              = 10
 
 .PHONY: install run debug clean clean-cache deep-clean lint \
-        prepare index test answer_dataset test_all \
+        prepare index  answer_dataset  \
         exam-retrieval exam-answer exam-edge-cases  \
         _stage-eval-materials
 
@@ -123,29 +123,6 @@ index:
 		--max_chunk_size $(MAX_CHUNK)
 	@echo "==> Index complete."
 
-test:
-	@echo "==> Searching docs dataset..."
-	uv run python -m student search_dataset \
-		--dataset_path $(DS_UNANSWERED)/dataset_docs_public.json \
-		--k $(K) \
-		--save_directory $(OUTPUT_SEARCH)
-	@echo "==> Evaluating docs dataset (target Recall@5 >= 0.80)..."
-	uv run python -m student evaluate \
-		--student_results_path $(OUTPUT_SEARCH)/dataset_docs_public.json \
-		--dataset_path $(DS_ANSWERED)/dataset_docs_public.json \
-		--k $(K)
-	@echo ""
-	@echo "==> Searching code dataset..."
-	uv run python -m student search_dataset \
-		--dataset_path $(DS_UNANSWERED)/dataset_code_public.json \
-		--k $(K) \
-		--save_directory $(OUTPUT_SEARCH)
-	@echo "==> Evaluating code dataset (target Recall@5 >= 0.50)..."
-	uv run python -m student evaluate \
-		--student_results_path $(OUTPUT_SEARCH)/dataset_code_public.json \
-		--dataset_path $(DS_ANSWERED)/dataset_code_public.json \
-		--k $(K)
-
 answer_dataset:
 	@echo "==> Generating answers for docs dataset..."
 	uv run python -m student answer_dataset \
@@ -156,12 +133,9 @@ answer_dataset:
 		--student_search_results_path $(OUTPUT_SEARCH)/dataset_code_public.json \
 		--save_directory $(OUTPUT_ANSWERS)
 
-test_all: prepare index test answer_dataset
-	@echo "==> Full pipeline complete."
-
 lint:
-	uv run flake8 .
-	uv run mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
+	uv run flake8 src
+	uv run mypy src --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 	        --disallow-untyped-defs --check-untyped-defs
 
 
@@ -183,8 +157,9 @@ clean-cache: clean
 	@uv cache clean 2>/dev/null || true
 	@echo "==> Project caches cleared."
 
-deep-clean: clean
+deep-clean: clean clean-cache
 	rm -rf data
+	rm -rf src/student.egg-info
 	rm -rf .venv
 	rm -rf __MACOSX
 	rm -rf datasets_public

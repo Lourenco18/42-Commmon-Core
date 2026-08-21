@@ -70,47 +70,59 @@ def _enforce_max_size(
 def chunk_python_file(
     content: str, file_path: str, max_chunk_size: int = 2000
 ) -> List[Tuple[str, int, int]]:
-    chunks: List[Tuple[str, int, int]] = []
-
     try:
         tree = ast.parse(content)
     except SyntaxError:
         return _enforce_max_size(
-            chunk_text_file(content, max_chunk_size), max_chunk_size
+            chunk_text_file(content, max_chunk_size),
+            max_chunk_size,
         )
 
+    lines = content.splitlines(keepends=True)
+
+    # Character offsets of top-level class/function definitions.
     boundaries: List[int] = [0]
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
-                             ast.ClassDef)):
-            for child in ast.iter_child_nodes(tree):
-                if child is node:
-                    if hasattr(node, 'lineno'):
-                        lines = content.split('\n')
-                        char_idx = sum(
-                            len(lines[i]) + 1 for i in range(node.lineno - 1)
-                        )
-                        if char_idx > 0 and char_idx not in boundaries:
-                            boundaries.append(char_idx)
+
+    offset = 0
+    line_offsets: List[int] = []
+    for line in lines:
+        line_offsets.append(offset)
+        offset += len(line)
+
+    for node in tree.body:
+        if isinstance(
+            node,
+            (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
+        ):
+            if node.lineno > 0:
+                start = line_offsets[node.lineno - 1]
+                if start not in boundaries:
+                    boundaries.append(start)
 
     boundaries.append(len(content))
     boundaries = sorted(set(boundaries))
 
-    for i in range(len(boundaries) - 1):
-        start = boundaries[i]
-        end = boundaries[i + 1]
+    chunks: List[Tuple[str, int, int]] = []
+
+    for start, end in zip(boundaries, boundaries[1:]):
         chunk_text = content[start:end]
 
         if not chunk_text.strip():
             continue
 
-        if len(chunk_text) > max_chunk_size:
-            chunks.extend(_split_by_size(chunk_text, start, max_chunk_size))
-        else:
+        if len(chunk_text) <= max_chunk_size:
             chunks.append((chunk_text, start, end))
+        else:
+            chunks.extend(
+                _split_by_size(
+                    chunk_text,
+                    start,
+                    max_chunk_size,
+                )
+            )
 
     if not chunks:
-        chunks = chunk_text_file(content, max_chunk_size)
+        return chunk_text_file(content, max_chunk_size)
 
     return _enforce_max_size(chunks, max_chunk_size)
 
