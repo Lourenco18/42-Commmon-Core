@@ -1,0 +1,6 @@
+bin/
+build/
+*.o
+logs/*.log
+!logs/.gitkeep
+/tmp/

@@ -1,0 +1,137 @@
+{
+  "start_room": "loc.square",
+  "rooms": {
+    "loc.square": {
+      "name": "Village Square",
+      "description": "A bustling square with cobblestone paths. The safe heart of the village.",
+      "exits": { "north": "loc.tavern", "south": "loc.riverside" }
+    },
+    "loc.tavern": {
+      "name": "The Prancing Pony",
+      "description": "A cozy tavern filled with warmth, laughter, and the smell of stew.",
+      "exits": { "south": "loc.square", "east": "loc.market" }
+    },
+    "loc.market": {
+      "name": "Village Market",
+      "description": "Stalls of every kind line this busy marketplace.",
+      "exits": { "west": "loc.tavern", "north": "loc.forest_edge" }
+    },
+    "loc.forest_edge": {
+      "name": "Forest Edge",
+      "description": "The village gives way to tall, whispering pines here.",
+      "exits": { "south": "loc.market", "east": "loc.forest_clearing" }
+    },
+    "loc.forest_clearing": {
+      "name": "Forest Clearing",
+      "description": "Sunlight breaks through the canopy onto a patch of wild herbs.",
+      "exits": { "west": "loc.forest_edge", "north": "loc.cave_entrance" }
+    },
+    "loc.cave_entrance": {
+      "name": "Cave Entrance",
+      "description": "A dark opening in the hillside, cool air drifting out.",
+      "exits": { "south": "loc.forest_clearing", "east": "loc.old_bridge", "down": "loc.cave_depths" }
+    },
+    "loc.cave_depths": {
+      "name": "Cave Depths",
+      "description": "A damp, narrow chamber deep underground. Something large breathes in the dark. (optional branch, dead end)",
+      "exits": { "up": "loc.cave_entrance" }
+    },
+    "loc.old_bridge": {
+      "name": "Old Rope Bridge",
+      "description": "A rickety bridge sways over a deep ravine.",
+      "exits": { "west": "loc.cave_entrance", "east": "loc.riverside", "south": "loc.ruins" }
+    },
+    "loc.ruins": {
+      "name": "Forgotten Ruins",
+      "description": "Crumbling stone walls, reclaimed by moss. (optional branch, dead end)",
+      "exits": { "north": "loc.old_bridge" }
+    },
+    "loc.riverside": {
+      "name": "Riverside Path",
+      "description": "A gentle river runs alongside a well-worn path back to the village.",
+      "exits": { "west": "loc.old_bridge", "north": "loc.square" }
+    }
+  },
+
+  "items": {
+    "item.herbs": {
+      "name": "Healing Herbs",
+      "description": "A bundle of fragrant, healing herbs.",
+      "obtainable": true,
+      "room": "loc.forest_clearing"
+    },
+    "item.sword": {
+      "name": "Rusty Sword",
+      "description": "An old but serviceable blade.",
+      "obtainable": true,
+      "room": "loc.cave_entrance"
+    },
+    "item.ale": {
+      "name": "Frothy Ale",
+      "description": "A refreshing drink that restores energy.",
+      "obtainable": true,
+      "room": "loc.tavern"
+    },
+    "item.gold_coin": {
+      "name": "Gold Coin",
+      "description": "A shiny gold coin. Quest reward.",
+      "obtainable": true,
+      "room": null
+    },
+    "item.goblin_tooth": {
+      "name": "Goblin Tooth",
+      "description": "A trophy taken from a defeated goblin. Quest reward.",
+      "obtainable": true,
+      "room": null
+    }
+  },
+
+  "npcs": {
+    "npc.guard": {
+      "name": "Village Guard",
+      "role": "dialogue",
+      "room": "loc.square",
+      "dialogue": ["Stay safe, traveler.", "The roads can be dangerous.", "Welcome to our village."]
+    },
+    "npc.merchant": {
+      "name": "Traveling Merchant",
+      "role": "quest_giver",
+      "room": "loc.market",
+      "dialogue": ["Welcome to my stall!", "Looking for supplies?"],
+      "quest": {
+        "id": "fetch_herbs",
+        "description": "Bring me 1 bundle of healing herbs from the forest clearing.",
+        "require_item": "item.herbs",
+        "require_count": 1,
+        "reward_item": "item.gold_coin"
+      }
+    },
+    "npc.elder": {
+      "name": "Village Elder",
+      "role": "quest_giver",
+      "room": "loc.tavern",
+      "dialogue": ["Trouble has been brewing in the forest.", "Beware the goblin near the clearing."],
+      "quest": {
+        "id": "defeat_goblin",
+        "description": "Defeat the goblin terrorizing the forest clearing.",
+        "require_kill": "npc.goblin",
+        "require_count": 1,
+        "reward_item": "item.goblin_tooth"
+      }
+    },
+    "npc.goblin": {
+      "name": "Forest Goblin",
+      "role": "enemy",
+      "room": "loc.forest_clearing",
+      "hp": 30,
+      "dialogue": []
+    },
+    "npc.cave_troll": {
+      "name": "Cave Troll",
+      "role": "enemy",
+      "room": "loc.cave_depths",
+      "hp": 50,
+      "dialogue": []
+    }
+  }
+}
