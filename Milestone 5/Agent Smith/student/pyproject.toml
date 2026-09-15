@@ -1,0 +1,28 @@
+[project]
+name = "agent-smith-student"
+version = "1.1.0"
+description = "Agent Smith - autonomous reasoning, code generation and execution"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "pydantic>=2.6",
+    "httpx>=0.27",
+    "mcp>=1.2.0,<2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+sandbox = "sandbox.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sandbox", "agent_core", "agent_mbpp", "agent_swebench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

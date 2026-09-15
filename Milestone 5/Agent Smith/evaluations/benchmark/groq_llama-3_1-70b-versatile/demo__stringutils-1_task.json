@@ -1,0 +1,8 @@
+{
+  "instance_id": "demo__stringutils-1",
+  "problem_statement": "reverse_words(sentence) in src/stringutils.py is supposed to return the sentence with word order reversed, e.g. reverse_words('hello world') == 'world hello'. Currently calling it raises/returns the wrong type. Fix the bug so tests/test_stringutils.py passes.",
+  "docker_image": "local-fixture:demo__stringutils-1",
+  "hints_text": "list.reverse() mutates in place and returns None.",
+  "repo": "demo/stringutils",
+  "eval_script": "/home/claude/venv/bin/python -m pytest tests/ -q"
+}

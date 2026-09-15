@@ -1,0 +1,4 @@
+[
+  "Thought: I will implement the function and test it.\nCode:\n```python\ncode = 'def sum_list(numbers):\\n    return sum(numbers)\\n'\nresult = run_tests(code, ['assert sum_list([1, 2, 3]) == 6', 'assert sum_list([]) == 0', 'assert sum_list([-1, 1, 10]) == 10'])\nprint(result)\n```\n<end_code>",
+  "Thought: Tests passed, submitting my final answer.\nCode:\n```python\nfinal_answer('def sum_list(numbers):\\n    return sum(numbers)\\n')\n```\n<end_code>"
+]

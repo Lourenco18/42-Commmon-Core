@@ -20,9 +20,10 @@ RUN curl -sS https://wordpress.org/latest.tar.gz -o /tmp/wordpress.tar.gz \
     && rm -f /tmp/wordpress.tar.gz \
     && chown -R www-data:www-data /var/www/html
 
-# --- php-fpm pool: listen on TCP 9000 for nginx, not on a unix socket ------
-RUN sed -i "s/^listen = .*/listen = 9000/" /etc/php/8.2/fpm/pool.d/www.conf \
-    && sed -i "s/;listen.owner = www-data/listen.owner = www-data/" /etc/php/8.2/fpm/pool.d/www.conf \
+# --- php-fpm pool: listen on TCP (nginx side), not on a unix socket -------
+# The actual port number is set at container start from $WP_FPM_PORT (see
+# tools/setup.sh) so it can be changed live during the defense.
+RUN sed -i "s/;listen.owner = www-data/listen.owner = www-data/" /etc/php/8.2/fpm/pool.d/www.conf \
     && sed -i "s/;listen.group = www-data/listen.group = www-data/" /etc/php/8.2/fpm/pool.d/www.conf \
     && sed -i "s/^;clear_env = no/clear_env = no/" /etc/php/8.2/fpm/pool.d/www.conf
 

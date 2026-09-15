@@ -12,9 +12,11 @@ http {
     sendfile      on;
 
     server {
-        # NGINX is the ONLY entrypoint into the infrastructure, port 443 only.
-        listen 443 ssl;
-        listen [::]:443 ssl;
+        # NGINX is the ONLY entrypoint into the infrastructure.
+        # Port is configurable via NGINX_PORT (defaults to 443) so it can be
+        # changed live during the defense without touching this file.
+        listen ${NGINX_PORT} ssl;
+        listen [::]:${NGINX_PORT} ssl;
         server_name ${DOMAIN_NAME};
 
         # TLSv1.2 / TLSv1.3 only, as required by the subject.
@@ -30,7 +32,7 @@ http {
         }
 
         location ~ \.php$ {
-            fastcgi_pass  wordpress:9000;
+            fastcgi_pass  wordpress:${WP_FPM_PORT};
             fastcgi_index index.php;
             fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
             include       fastcgi_params;

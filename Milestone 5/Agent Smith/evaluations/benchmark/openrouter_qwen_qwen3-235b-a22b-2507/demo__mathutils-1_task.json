@@ -1,0 +1,8 @@
+{
+  "instance_id": "demo__mathutils-1",
+  "problem_statement": "is_prime(n) in src/mathutils.py incorrectly classifies some composite numbers as prime for larger inputs (e.g. is_prime(100) should be False). Fix the bug so tests/test_mathutils.py passes.",
+  "docker_image": "local-fixture:demo__mathutils-1",
+  "hints_text": "Check the loop bound used to test divisibility.",
+  "repo": "demo/mathutils",
+  "eval_script": "/home/claude/venv/bin/python -m pytest tests/ -q"
+}

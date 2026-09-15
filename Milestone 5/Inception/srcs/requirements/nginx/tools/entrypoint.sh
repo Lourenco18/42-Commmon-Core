@@ -9,7 +9,7 @@
 # ============================================================================
 set -e
 
-envsubst '${DOMAIN_NAME}' \
+envsubst '${DOMAIN_NAME} ${NGINX_PORT} ${WP_FPM_PORT}' \
     < /etc/nginx/conf.d/nginx.conf.template \
     > /etc/nginx/nginx.conf
 

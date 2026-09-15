@@ -13,8 +13,12 @@ DB_PASSWORD=$(cat "${MYSQL_PASSWORD_FILE}")
 WP_ADMIN_PASSWORD=$(cat "${WP_ADMIN_PASSWORD_FILE}")
 WP_USER_PASSWORD=$(cat "${WP_USER_PASSWORD_FILE}")
 
-echo "[wordpress] Waiting for MariaDB at ${MYSQL_HOST}..."
-until mysqladmin ping -h"${MYSQL_HOST}" -u"${MYSQL_USER}" -p"${DB_PASSWORD}" --silent 2>/dev/null; do
+# php-fpm pool: apply the configurable listen port (defense may ask to
+# change it live) before starting.
+sed -i "s/^listen = .*/listen = ${WP_FPM_PORT}/" /etc/php/8.2/fpm/pool.d/www.conf
+
+echo "[wordpress] Waiting for MariaDB at ${MYSQL_HOST}:${MYSQL_PORT}..."
+until mysqladmin ping -h"${MYSQL_HOST}" -P"${MYSQL_PORT}" -u"${MYSQL_USER}" -p"${DB_PASSWORD}" --silent 2>/dev/null; do
     sleep 2
 done
 echo "[wordpress] MariaDB is up."
@@ -28,7 +32,7 @@ if [ ! -f wp-config.php ]; then
         --dbname="${MYSQL_DATABASE}" \
         --dbuser="${MYSQL_USER}" \
         --dbpass="${DB_PASSWORD}" \
-        --dbhost="${MYSQL_HOST}" \
+        --dbhost="${MYSQL_HOST}:${MYSQL_PORT}" \
         --path="/var/www/html" \
         --allow-root
 
@@ -52,6 +56,19 @@ if [ ! -f wp-config.php ]; then
 else
     echo "[wordpress] Existing installation found, skipping install."
 fi
+
+# Always re-apply DB host/port and site URL, in case a defense-time
+# configuration change (e.g. DB_PORT or NGINX_PORT) happened after the
+# initial install above.
+if [ "${NGINX_PORT}" = "443" ]; then
+    SITE_URL="https://${DOMAIN_NAME}"
+else
+    SITE_URL="https://${DOMAIN_NAME}:${NGINX_PORT}"
+fi
+
+wp config set DB_HOST "${MYSQL_HOST}:${MYSQL_PORT}" --path="/var/www/html" --allow-root
+wp option update siteurl "${SITE_URL}" --path="/var/www/html" --allow-root
+wp option update home "${SITE_URL}" --path="/var/www/html" --allow-root
 
 chown -R www-data:www-data /var/www/html
 

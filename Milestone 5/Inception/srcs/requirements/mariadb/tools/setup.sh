@@ -38,5 +38,5 @@ EOSQL
     echo "[mariadb] Initialisation complete."
 fi
 
-echo "[mariadb] Starting mysqld as PID 1..."
-exec mysqld --user=mysql
+echo "[mariadb] Starting mysqld as PID 1 on port ${MYSQL_PORT}..."
+exec mysqld --user=mysql --port="${MYSQL_PORT}"

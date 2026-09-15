@@ -126,7 +126,31 @@ on every subsequent `docker compose up` — only the very first start (empty
 volume) performs the MariaDB `mysql_install_db` + user creation, and the
 WordPress `wp core install` + user creation.
 
-## 6. PID 1 / process model notes
+## 6. Changing a service's port (defense "configuration modification" test)
+
+Every service's port is a variable in `srcs/.env`, never hard-coded in a
+Dockerfile or in `docker-compose.yml`:
+
+| Variable      | Used by                          | Default |
+|---------------|-----------------------------------|---------|
+| `NGINX_PORT`  | nginx's `listen` + host port mapping | 443 |
+| `WP_FPM_PORT` | php-fpm's `listen` + nginx's `fastcgi_pass` | 9000 |
+| `DB_PORT`     | mysqld's `--port` + WordPress's `DB_HOST` | 3306 |
+
+To change one live during the defense, edit the value in `srcs/.env`
+(e.g. `NGINX_PORT=8443`), then simply:
+
+```bash
+make re
+```
+
+Everything downstream re-reads the new value automatically: the nginx
+config template is re-rendered with `envsubst` on container start, the
+php-fpm pool file is patched on container start, `mysqld` is launched with
+`--port=$DB_PORT`, and the WordPress `wp-config.php`/site URL are
+re-applied on every boot — no manual file editing required beyond `.env`.
+
+## 7. PID 1 / process model notes
 
 Per the subject's constraints, none of the three Dockerfiles use `tail -f`,
 `sleep infinity`, `while true`, or a bare shell as a long-running command.
