@@ -113,12 +113,10 @@ answers, which should never end up committed.
 
 ```bash
 make install
-make lint          # install dependencies
-make prepare          # set up data/raw/ and data/
+make lint       
+make prepare   
 make index        
-
 uv run python -m student search "How to configure OpenAI server?" --k 10
-
 uv run python -m student answer "How to configure OpenAI server?" --k 10
 make exam-edge-cases  
 make exam-retrieval 
