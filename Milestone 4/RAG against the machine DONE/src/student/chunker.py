@@ -6,6 +6,14 @@ from typing import List, Tuple
 def _hard_split(
     text: str, base_offset: int, max_chunk_size: int
 ) -> List[Tuple[str, int, int]]:
+    """Divide o texto em partes do tamanho máximo, sem considerar linhas.
+
+    Recebe o texto, a posição inicial dele no arquivo e o tamanho máximo.
+    Devolve tuplas ``(trecho, início, fim)``. Passo a passo: corta o texto
+    em blocos consecutivos, ajusta as posições com ``base_offset`` e ignora
+    blocos vazios. Exemplo: ``_hard_split("abcdef", 10, 3)`` devolve
+    ``[("abc", 10, 13), ("def", 13, 16)]``.
+    """
     chunks: List[Tuple[str, int, int]] = []
     pos = 0
     while pos < len(text):
@@ -20,6 +28,13 @@ def _hard_split(
 def _split_by_size(
     text: str, base_offset: int, max_chunk_size: int
 ) -> List[Tuple[str, int, int]]:
+    """Divide texto grande tentando manter as linhas inteiras.
+
+    Recebe texto, posição inicial e tamanho máximo. Devolve tuplas com o
+    trecho e suas posições no arquivo. Primeiro agrupa linhas que cabem no
+    limite; se uma linha sozinha for grande demais, usa ``_hard_split``.
+    Exemplo: com limite 10, duas linhas curtas podem ficar no mesmo trecho.
+    """
     chunks: List[Tuple[str, int, int]] = []
     lines = text.split('\n')
     current = ''
@@ -58,6 +73,13 @@ def _split_by_size(
 def _enforce_max_size(
     chunks: List[Tuple[str, int, int]], max_chunk_size: int
 ) -> List[Tuple[str, int, int]]:
+    """Garante que nenhum trecho ultrapasse o tamanho máximo.
+
+    Recebe uma lista de trechos e o limite de caracteres. Devolve outra
+    lista: mantém os trechos dentro do limite e divide os maiores com
+    ``_hard_split``. Exemplo: um trecho de 12 caracteres com limite 10
+    passa a ter dois trechos menores.
+    """
     result: List[Tuple[str, int, int]] = []
     for chunk_text, start, end in chunks:
         if len(chunk_text) <= max_chunk_size:
@@ -70,6 +92,15 @@ def _enforce_max_size(
 def chunk_python_file(
     content: str, file_path: str, max_chunk_size: int = 2000
 ) -> List[Tuple[str, int, int]]:
+    """Divide o conteúdo de um arquivo Python em trechos.
+
+    Recebe o conteúdo, o caminho do arquivo e o tamanho máximo. Devolve
+    tuplas com o texto e as posições inicial/final. Passo a passo: tenta
+    analisar o Python, usa classes e funções de nível superior como
+    fronteiras e divide partes grandes; se o código não puder ser
+    analisado, usa a divisão de texto comum. Exemplo: cada função
+    independente pode ficar em um trecho, limitado a 2000 caracteres.
+    """
     try:
         tree = ast.parse(content)
     except SyntaxError:
@@ -80,7 +111,7 @@ def chunk_python_file(
 
     lines = content.splitlines(keepends=True)
 
-    # Character offsets of top-level class/function definitions.
+    # Posições em caracteres das definições de classes e funções de nível superior.
     boundaries: List[int] = [0]
 
     offset = 0
@@ -130,6 +161,14 @@ def chunk_python_file(
 def chunk_text_file(
     content: str, max_chunk_size: int = 2000
 ) -> List[Tuple[str, int, int]]:
+    """Divide texto comum em trechos, preservando parágrafos quando possível.
+
+    Recebe o conteúdo e o tamanho máximo em caracteres. Devolve tuplas
+    ``(trecho, início, fim)``. Agrupa parágrafos separados por linhas em
+    branco; parágrafos muito grandes são subdivididos e todos os trechos
+    respeitam o limite. Exemplo: dois parágrafos curtos podem ser agrupados
+    em um único trecho.
+    """
     chunks: List[Tuple[str, int, int]] = []
     paragraphs: List[Tuple[str, int]] = []
 
@@ -185,6 +224,14 @@ def chunk_text_file(
 def get_file_chunks(
     file_path: str, content: str, max_chunk_size: int = 2000
 ) -> List[Tuple[str, int, int]]:
+    """Escolhe como dividir um arquivo de acordo com sua extensão.
+
+    Recebe o caminho, o conteúdo e o tamanho máximo. Devolve a lista de
+    trechos com suas posições. Passo a passo: se a extensão for ``.py``,
+    usa ``chunk_python_file``; para as outras extensões, usa
+    ``chunk_text_file``. Exemplo: ``get_file_chunks("guia.md", texto)``
+    devolve trechos de texto com posições no arquivo.
+    """
     ext = os.path.splitext(file_path)[1].lower()
     if ext == '.py':
         return chunk_python_file(content, file_path, max_chunk_size)

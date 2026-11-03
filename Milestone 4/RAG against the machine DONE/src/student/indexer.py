@@ -22,6 +22,12 @@ SKIP_DIRS = {
 
 
 def tokenize(text: str) -> List[str]:
+    """Divide o texto em termos para a busca BM25.
+
+    Recebe um texto e devolve palavras e partes separadas por ``_``,
+    ignorando itens com menos de dois caracteres.
+    Exemplo: ``"index_file"`` vira ``["index_file", "index", "file"]``.
+    """
     tokens = re.split(r'[^\w_]+', text.lower())
     expanded: List[str] = []
     for token in tokens:
@@ -35,6 +41,12 @@ def tokenize(text: str) -> List[str]:
 
 
 def should_skip_file(file_path: str) -> bool:
+    """Indica se um caminho deve ficar fora do índice.
+
+    Recebe o caminho de um arquivo. Devolve ``True`` para pastas ignoradas,
+    caminhos ocultos ou extensões não suportadas; caso contrário, devolve
+    ``False``. Exemplo: ``"src/main.py"`` devolve ``False``.
+    """
     parts = file_path.replace('\\', '/').split('/')
     for part in parts:
         if part in SKIP_DIRS or part.startswith('.'):
@@ -44,6 +56,14 @@ def should_skip_file(file_path: str) -> bool:
 
 
 def collect_files(repo_path: str) -> List[str]:
+    """Encontra os arquivos do projeto que podem ser indexados.
+
+    Recebe o caminho da pasta do repositório e devolve uma lista com os
+    caminhos completos dos arquivos aceitos. Passo a passo: percorre
+    ``repo_path``, ignora pastas como ``.git`` e inclui arquivos ``.py``.
+    Exemplo: se existir ``meu_projeto/src/main.py``, esse caminho entra
+    na lista devolvida.
+    """
     files: List[str] = []
     for root, dirs, filenames in os.walk(repo_path):
         dirs[:] = [
@@ -59,15 +79,32 @@ def collect_files(repo_path: str) -> List[str]:
 
 
 class BM25Index:
+    """Constrói, consulta e guarda o índice de busca do repositório."""
+
     def __init__(
         self, repo_path: str, max_chunk_size: int = 2000
     ) -> None:
+        """Prepara um índice vazio para um repositório.
+
+        Recebe a pasta do repositório e o tamanho máximo de cada trecho.
+        Por exemplo, ``BM25Index("projeto", 2000)`` guarda essas opções e
+        inicia sem trechos; não devolve um valor (retorna ``None``).
+        """
         self.repo_path = repo_path
         self.max_chunk_size = max_chunk_size
         self.bm25: Optional[BM25Okapi] = None
         self.chunks: List[Tuple[str, int, int, str]] = []
 
     def build(self) -> None:
+        """Lê e divide os arquivos para montar o índice BM25.
+
+        Não recebe argumentos adicionais e não devolve um valor. Passo a
+        passo: encontra arquivos aceitos, lê o conteúdo, cria trechos com
+        ``get_file_chunks``, guarda caminho e posições em ``self.chunks`` e
+        calcula o índice BM25. Arquivos vazios ou que não podem ser lidos
+        são ignorados. Exemplo: depois de ``build()``, ``search()`` pode
+        procurar termos nos trechos carregados.
+        """
         files = collect_files(self.repo_path)
         corpus: List[List[str]] = []
 
@@ -97,13 +134,25 @@ class BM25Index:
     def search(
         self, query: str, k: int = 10
     ) -> List[Dict[str, Any]]:
+        """Busca os trechos mais relevantes para uma pergunta.
+
+        Recebe o texto da busca e a quantidade máxima de resultados ``k``.
+        Devolve uma lista ordenada de dicionários com caminho, posições dos
+        caracteres e pontuação BM25. Passo a passo: tokeniza a pergunta,
+        calcula as pontuações, seleciona até ``k`` trechos com pontuação
+        positiva e remove repetições. Sem índice ou resultados, devolve
+        ``[]``. Exemplo: ``search("index", k=1)`` pode devolver
+        ``[{"file_path": "...", "first_character_index": 0,
+        "last_character_index": 20, "score": 1.2}]``; a pontuação depende
+        dos arquivos indexados.
+        """
         if self.bm25 is None or not self.chunks:
             return []
 
         query_tokens = tokenize(query)
         scores = self.bm25.get_scores(query_tokens)
 
-        top_k = sorted(
+        top_k = sorted( 
             range(len(scores)), key=lambda i: scores[i], reverse=True
         )[:k]
 
@@ -127,6 +176,13 @@ class BM25Index:
         return results
 
     def save(self, index_dir: str) -> None:
+        """Guarda o índice e os trechos em disco para uso posterior.
+
+        Recebe a pasta onde salvar os dados. Não devolve um valor
+        (retorna ``None``). Exemplo: ``save("data/processed/bm25_index")``
+        cria os arquivos do BM25, metadados e textos dos trechos; também
+        atualiza o manifesto em ``data/processed/chunks/manifest.json``.
+        """
         os.makedirs(index_dir, exist_ok=True)
 
         with open(os.path.join(index_dir, 'bm25.pkl'), 'wb') as f:
@@ -163,6 +219,14 @@ class BM25Index:
 
     @classmethod
     def load(cls, index_dir: str) -> 'BM25Index':
+        """Carrega do disco um índice salvo anteriormente.
+
+        Recebe a pasta usada em ``save()`` e devolve um ``BM25Index``
+        pronto para busca, com modelo BM25 e trechos restaurados. Passo a
+        passo: lê o modelo, os metadados e os textos, cria a instância e
+        recompõe cada trecho. Exemplo: ``BM25Index.load("data/processed/"
+        "bm25_index")`` devolve um índice que pode receber ``search()``.
+        """
         with open(os.path.join(index_dir, 'bm25.pkl'), 'rb') as f:
             bm25 = pickle.load(f)
 

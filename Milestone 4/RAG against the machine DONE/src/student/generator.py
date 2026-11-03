@@ -3,6 +3,8 @@ from typing import Any, Dict, List, Optional
 
 
 class AnswerGenerator:
+    """Carrega um modelo de linguagem e cria respostas com contexto do RAG."""
+
     def __init__(
         self,
         model_name: str = 'Qwen/Qwen3-0.6B',
@@ -10,6 +12,13 @@ class AnswerGenerator:
         max_sources: int = 3,
         max_new_tokens: int = 256,
     ) -> None:
+        """Guarda as opções usadas para gerar respostas.
+
+        Recebe o nome do modelo e limites de contexto, fontes e tokens.
+        Inicializa o gerador sem carregar o modelo. Exemplo:
+        ``AnswerGenerator(max_sources=2)`` configura o uso de até duas
+        fontes; o método não devolve um valor.
+        """
         self.model_name = model_name
         self.max_context_length = max_context_length
         self.max_sources = max_sources
@@ -18,6 +27,13 @@ class AnswerGenerator:
         self.model: Optional[Any] = None
 
     def load(self) -> None:
+        """Carrega o tokenizador e o modelo na melhor unidade disponível.
+
+        Não recebe argumentos nem devolve um valor. Passo a passo: verifica
+        se há Apple MPS, CUDA ou usa CPU; carrega o modelo e o tokenizador,
+        coloca o modelo no dispositivo escolhido e desativa o treino.
+        Exemplo: após ``load()``, o objeto pode gerar respostas.
+        """
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -54,6 +70,15 @@ class AnswerGenerator:
         file_path: str,
         repo_path: str,
     ) -> str:
+        """Encontra o caminho real de um arquivo citado nos resultados.
+
+        Recebe o caminho guardado no índice e a pasta do repositório.
+        Testa o caminho original, relativo ao repositório e os caminhos
+        absolutos correspondentes. Devolve o primeiro que existir; se
+        nenhum existir, devolve o caminho original. Exemplo:
+        ``("src/main.py", "/projeto")`` pode resultar em
+        ``"/projeto/src/main.py"``.
+        """
         candidates: List[str] = []
 
         normalized = file_path.strip()
@@ -84,6 +109,14 @@ class AnswerGenerator:
         sources: List[Dict[str, Any]],
         repo_path: str,
     ) -> str:
+        """Monta a instrução para o modelo com trechos encontrados no índice.
+
+        Recebe a pergunta, fontes com caminho e posições, e a pasta do
+        repositório. Lê até ``max_sources`` arquivos, limita o contexto a
+        ``max_context_length`` caracteres e devolve o prompt completo com
+        instruções, contexto e pergunta. Exemplo: o resultado inclui
+        ``Context:``, os trechos encontrados e ``Question: ...``.
+        """
         context_parts: List[str] = []
         remaining = self.max_context_length
 
@@ -151,6 +184,15 @@ class AnswerGenerator:
         repo_path: str,
         max_new_tokens: Optional[int] = None,
     ) -> str:
+        """Gera uma resposta baseada apenas nas fontes encontradas.
+
+        Recebe a pergunta, as fontes, a pasta do repositório e, opcionalmente,
+        o limite de tokens. Passo a passo: carrega o modelo se necessário,
+        monta e codifica o prompt, gera texto e devolve a resposta. Se o
+        modelo não produzir texto, devolve ``"No answer could be generated."``.
+        Exemplo: ``generate("O que faz X?", fontes, pasta)`` devolve uma
+        resposta curta ou a mensagem de falta de resposta.
+        """
         if self.model is None or self.tokenizer is None:
             self.load()
 

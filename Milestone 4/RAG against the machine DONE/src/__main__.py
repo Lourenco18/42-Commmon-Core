@@ -1,13 +1,11 @@
-"""Compatibility entry point.
+"""Ponto de entrada alternativo para iniciar o projeto.
 
-The actual implementation lives in the `student` package
-(src/student/), and is normally invoked as `python -m student ...`.
+O código principal fica no pacote ``student`` (``src/student/``) e pode ser
+iniciado com ``python -m student ...``.
 
-The official 42 School evaluation sheet and exam scripts
-(exams/scripts/*.sh) default to `python -m src ...` (with
-`--module-name` available to override it). This thin shim lets the
-project be invoked either way without duplicating any logic: it
-simply forwards to `student.__main__.main`.
+Os scripts de avaliação também podem usar ``python -m src ...``. Este
+arquivo encaminha essa chamada para ``student.__main__.main`` sem duplicar
+a lógica do programa.
 """
 from student.__main__ import main
 

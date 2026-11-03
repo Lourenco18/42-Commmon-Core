@@ -27,6 +27,14 @@ ModelT = TypeVar('ModelT', bound=BaseModel)
 
 
 def _load_index(index_dir: str = DEFAULT_INDEX_DIR) -> BM25Index:
+    """Carrega o índice salvo para os comandos de busca.
+
+    Recebe a pasta do índice e devolve um ``BM25Index`` carregado. Primeiro
+    verifica se o arquivo principal existe; depois lê o índice. Se os
+    arquivos estiverem ausentes ou inválidos, mostra um erro e encerra o
+    comando. Exemplo: ``_load_index("data/processed/bm25_index")`` devolve
+    um índice pronto para ``search()``.
+    """
     if not os.path.exists(os.path.join(index_dir, 'bm25.pkl')):
         print(
             f"Index not found at '{index_dir}'. "
@@ -43,12 +51,14 @@ def _load_index(index_dir: str = DEFAULT_INDEX_DIR) -> BM25Index:
 
 
 def _load_json_model(path: str, model: Type[ModelT]) -> ModelT:
-    """Read a JSON file and validate it against a pydantic model.
+    """Lê um JSON e valida o conteúdo com um modelo Pydantic.
 
-    Exits with a clear, user-facing error message (no traceback) on any
-    of the degenerate/erroneous inputs the CLI must tolerate: missing
-    file, unreadable file, malformed JSON, or a JSON payload that does
-    not match the expected schema.
+    Recebe o caminho do arquivo e a classe do modelo esperado. Devolve
+    uma instância validada desse modelo. Passo a passo: abre o arquivo,
+    converte o JSON e valida os campos; se o arquivo ou os dados forem
+    inválidos, mostra um erro claro e encerra o comando. Exemplo:
+    ``_load_json_model("perguntas.json", RagDataset)`` devolve um
+    ``RagDataset``.
     """
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -74,6 +84,12 @@ def _load_json_model(path: str, model: Type[ModelT]) -> ModelT:
 
 
 def _validate_k(k: int) -> int:
+    """Verifica se a quantidade de resultados pedida é positiva.
+
+    Recebe ``k`` e devolve o mesmo valor se for maior que zero. Caso
+    contrário, mostra uma mensagem de erro e encerra o comando. Exemplo:
+    ``_validate_k(5)`` devolve ``5``.
+    """
     if k <= 0:
         print(
             f"Error: --k must be a positive integer, got {k}.",
@@ -86,6 +102,14 @@ def _validate_k(k: int) -> int:
 def _write_json(
     output: BaseModel, save_directory: str, source_path: str
 ) -> str:
+    """Salva um modelo Pydantic como JSON na pasta de saída.
+
+    Recebe os dados, a pasta onde salvar e o caminho usado para obter o
+    nome do arquivo. Cria a pasta se necessário, grava o JSON formatado e
+    devolve o caminho do arquivo criado. Exemplo: para
+    ``source_path="data/questions.json"``, o arquivo salvo também se chama
+    ``questions.json``.
+    """
     try:
         os.makedirs(save_directory, exist_ok=True)
         out_filename = os.path.basename(source_path)
@@ -102,12 +126,22 @@ def _write_json(
 
 
 class RAGSystem:
+    """Oferece os comandos para indexar, pesquisar e avaliar o projeto."""
+
     def index(
         self,
         data_dir: str = DEFAULT_DATA_DIR,
         index_dir: str = DEFAULT_INDEX_DIR,
         max_chunk_size: int = DEFAULT_MAX_CHUNK_SIZE,
     ) -> None:
+        """Cria e salva o índice de busca do repositório.
+
+        Recebe a pasta dos dados, a pasta de saída do índice e o limite de
+        caracteres por trecho. Passo a passo: localiza o repositório,
+        constrói o índice BM25 e salva os arquivos para os comandos de
+        busca. Não devolve um valor. Exemplo: ``index()`` usa as pastas e
+        o limite padrão do projeto.
+        """
         repo_path = os.path.join(data_dir, DEFAULT_REPO_SUBDIR)
 
         if not os.path.exists(repo_path):
@@ -127,6 +161,14 @@ class RAGSystem:
         k: int = 10,
         index_dir: str = DEFAULT_INDEX_DIR,
     ) -> None:
+        """Busca trechos relevantes para uma pergunta e mostra-os no terminal.
+
+        Recebe a pergunta, o número máximo de resultados e a pasta do
+        índice. Valida a entrada, consulta o BM25 e imprime os arquivos,
+        posições e pontuações encontrados. Não devolve um valor. Exemplo:
+        ``search("como funciona o chunking", k=3)`` mostra até três
+        resultados.
+        """
         k = _validate_k(k)
         if not query or not query.strip():
             print("Error: query must be a non-empty string.",
@@ -156,6 +198,15 @@ class RAGSystem:
         index_dir: str = DEFAULT_INDEX_DIR,
         limit: Optional[int] = None,
     ) -> None:
+        """Busca fontes para as perguntas de um conjunto de dados.
+
+        Recebe o JSON de perguntas, a pasta de saída, o número máximo de
+        fontes por pergunta, o índice e um limite opcional de perguntas.
+        Passo a passo: valida os dados, pesquisa cada pergunta, monta os
+        resultados e grava um JSON ``StudentSearchResults``. Não devolve
+        um valor. Exemplo: ``search_dataset("questions.json", k=5)``
+        cria um arquivo com até cinco fontes para cada pergunta.
+        """
         k = _validate_k(k)
         idx = _load_index(index_dir)
         dataset = _load_json_model(dataset_path, RagDataset)
@@ -207,6 +258,15 @@ class RAGSystem:
         index_dir: str = DEFAULT_INDEX_DIR,
         max_new_tokens: int = 256,
     ) -> None:
+        """Procura fontes para uma pergunta e gera uma resposta com o modelo.
+
+        Recebe a pergunta, o número de fontes, a pasta do índice e o limite
+        de tokens a gerar. Primeiro recupera contexto com BM25; depois
+        carrega o modelo e pede uma resposta baseada nesse contexto. Mostra
+        pergunta e resposta no terminal, sem devolver um valor. Exemplo:
+        ``answer("O que é RAG?", k=3)`` imprime a resposta no terminal;
+        as fontes recuperadas são usadas como contexto para o modelo.
+        """
         from student.generator import AnswerGenerator
 
         k = _validate_k(k)
@@ -250,6 +310,15 @@ class RAGSystem:
         limit: Optional[int] = None,
         max_new_tokens: int = 256,
     ) -> None:
+        """Gera respostas para os resultados de busca de um conjunto.
+
+        Recebe o JSON produzido pela busca em lote, a pasta de saída, o
+        índice, um limite opcional de perguntas e o limite de tokens.
+        Passo a passo: carrega os resultados e o modelo, gera uma resposta
+        para cada pergunta e grava um JSON ``StudentSearchResultsAndAnswer``.
+        Não devolve um valor. Exemplo: ``answer_dataset("search_results.json")``
+        cria um arquivo com as fontes e respostas.
+        """
         from student.generator import AnswerGenerator
 
         idx = _load_index(index_dir)
@@ -336,6 +405,17 @@ class RAGSystem:
         k: int = 10,
         max_context_length: int = 2000,
     ) -> None:
+        """Compara fontes encontradas com fontes esperadas e imprime Recall@k.
+
+        Recebe o JSON de resultados, o conjunto de referência e os
+        parâmetros ``k`` e ``max_context_length``. Valida os arquivos,
+        compara as fontes por arquivo e sobreposição das posições e mostra
+        Recall@1, @3, @5 e @10. Não devolve um valor; o relatório aparece
+        no terminal. Nota: nesta função, os valores impressos são sempre
+        1, 3, 5 e 10; ``max_context_length`` não é usado no cálculo.
+        Exemplo: ``evaluate("resultados.json", "referencia.json")`` imprime
+        as métricas de recuperação.
+        """
         k = _validate_k(k)
         student_data = _load_json_model(
             student_results_path, StudentSearchResults
@@ -385,6 +465,13 @@ def _iou(
     retrieved_start: int, retrieved_end: int,
     gt_start: int, gt_end: int,
 ) -> float:
+    """Calcula a proporção de sobreposição entre duas posições de texto.
+
+    Recebe início e fim do trecho encontrado e do trecho esperado.
+    Devolve a interseção dividida pela união, entre ``0`` e ``1``; sem
+    sobreposição, devolve ``0.0``. Exemplo: os intervalos ``[10, 20]`` e
+    ``[15, 25]`` têm IoU de aproximadamente ``0.33``.
+    """
     inter_start = max(retrieved_start, gt_start)
     inter_end = min(retrieved_end, gt_end)
     if inter_end <= inter_start:
@@ -405,6 +492,14 @@ def _source_found(
     gt_source: MinimalSource,
     k: int,
 ) -> bool:
+    """Verifica se uma fonte esperada aparece entre as primeiras ``k`` fontes.
+
+    Recebe as fontes recuperadas, uma fonte de referência e o limite ``k``.
+    Devolve ``True`` se encontrar o mesmo arquivo com IoU de pelo menos
+    ``0.05``; caso contrário, devolve ``False``. Exemplo: uma fonte do
+    mesmo arquivo com posições suficientemente sobrepostas conta como
+    encontrada.
+    """
     for src in retrieved[:k]:
         if src.file_path == gt_source.file_path:
             iou = _iou(
@@ -423,6 +518,15 @@ def _compute_recall_at_k(
     gt_lookup: Dict[str, Any],
     k: int,
 ) -> float:
+    """Calcula o Recall@k médio para perguntas com fontes de referência.
+
+    Recebe os resultados de busca, um dicionário de perguntas de
+    referência indexado por ID e o limite ``k``. Para cada pergunta válida,
+    conta as fontes esperadas encontradas entre as primeiras ``k``;
+    devolve a média dessas proporções. Devolve ``0.0`` se não houver
+    perguntas avaliáveis. Exemplo: se a média das proporções for 0.75,
+    devolve ``0.75``.
+    """
     total_recall = 0.0
     count = 0
 
@@ -448,6 +552,13 @@ def _compute_recall_at_k(
 
 
 def main() -> None:
+    """Inicia a interface de linha de comando do projeto.
+
+    Não recebe argumentos diretamente nem devolve um valor. Usa Fire para
+    expor os métodos de ``RAGSystem`` como comandos. Exemplo: executar
+    ``python -m student search --query="RAG"`` encaminha a chamada ao
+    método ``search``.
+    """
     fire.Fire(RAGSystem)
 
 
