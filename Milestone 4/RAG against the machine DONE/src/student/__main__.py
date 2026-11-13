@@ -301,7 +301,7 @@ class RAGSystem:
             repo_path=idx.repo_path,
         )
         print(f"Answer: {answer_text}")
-
+  
     def answer_dataset(
         self,
         student_search_results_path: str,

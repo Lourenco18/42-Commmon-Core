@@ -25,13 +25,13 @@ deep-clean: clean
 	find . -name ".DS_Store" -delete 2>/dev/null || true
 
 lint:
-	flake8 src
-	mypy src --warn-return-any --warn-unused-ignores --ignore-missing-imports \
+	flake8 .
+	mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports \
 	       --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
-	flake8 src
-	mypy src --strict --ignore-missing-imports
+	flake8 .
+	mypy . --strict --ignore-missing-imports
 
 package:
 	python3 -m pip install pyinstaller

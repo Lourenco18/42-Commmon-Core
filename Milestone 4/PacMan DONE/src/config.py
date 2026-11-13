@@ -29,10 +29,13 @@ INT_CLAMPS: dict[str, tuple[int, int]] = {
 
 def _get_int(data: dict[str, Any], key: str) -> int:
     default = DEFAULTS[key]
+    if key not in data:
+        logger.warning("Config: '%s' missing, using default %s", key, default)
+        return int(default)
     raw = data.get(key, default)
     try:
         val = int(raw)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         logger.warning("Config: '%s' invalid, using default %s", key, default)
         return int(default)
     lo, hi = INT_CLAMPS[key]
@@ -50,17 +53,57 @@ def _parse_levels(raw_levels: Any) -> list[dict[str, int]]:
     parsed: list[dict[str, int]] = []
     for i, lvl in enumerate(raw_levels):
         if not isinstance(lvl, dict):
+            logger.warning(
+                "Config: 'level[%d]' invalid, using default 21x21", i + 1)
             parsed.append({"width": 21, "height": 21})
             continue
+        missing_dimensions = [
+            dimension for dimension in ("width", "height")
+            if dimension not in lvl
+        ]
+        if missing_dimensions:
+            logger.warning(
+                "Config: 'level[%d]' missing %s, using 21 for missing "
+                "dimension(s)",
+                i + 1,
+                ", ".join(missing_dimensions))
         try:
-            w = max(11, min(51, int(lvl.get("width", 21))))
-            h = max(11, min(51, int(lvl.get("height", 21))))
+            raw_width = int(lvl.get("width", 21))
+            raw_height = int(lvl.get("height", 21))
+        except (TypeError, ValueError, OverflowError):
+            logger.warning(
+                "Config: 'level[%d]' has invalid dimensions, using 21x21",
+                i + 1)
+            w, h = 21, 21
+        else:
+            w = max(11, min(51, raw_width))
+            h = max(11, min(51, raw_height))
+            if w != raw_width:
+                logger.warning(
+                    "Config: 'level[%d].width' clamped %d -> %d",
+                    i + 1,
+                    raw_width,
+                    w)
+            if h != raw_height:
+                logger.warning(
+                    "Config: 'level[%d].height' clamped %d -> %d",
+                    i + 1,
+                    raw_height,
+                    h)
             if w % 2 == 0:
+                logger.warning(
+                    "Config: 'level[%d].width' rounded up %d -> %d",
+                    i + 1,
+                    w,
+                    w + 1)
                 w += 1
             if h % 2 == 0:
+                logger.warning(
+                    "Config: 'level[%d].height' rounded up %d -> %d",
+                    i + 1,
+                    h,
+                    h + 1)
                 h += 1
-        except (TypeError, ValueError):
-            w, h = 21, 21
         parsed.append({"width": w, "height": h})
     while len(parsed) < 10:
         parsed.append({"width": 21, "height": 21})
@@ -108,8 +151,15 @@ def load_config(path: str) -> Config:
     if not isinstance(data, dict):
         raise SystemExit(
             "Error: config file must contain a JSON object at the root.")
+    if "highscore_filename" not in data:
+        logger.warning(
+            "Config: 'highscore_filename' missing, using default %s",
+            DEFAULTS["highscore_filename"])
     hf = data.get("highscore_filename", DEFAULTS["highscore_filename"])
     if not isinstance(hf, str) or not hf.strip():
+        logger.warning(
+            "Config: 'highscore_filename' invalid, using default %s",
+            DEFAULTS["highscore_filename"])
         hf = str(DEFAULTS["highscore_filename"])
     return Config(
         highscore_filename=str(hf),

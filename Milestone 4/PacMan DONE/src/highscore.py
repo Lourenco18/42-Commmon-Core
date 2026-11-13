@@ -49,7 +49,7 @@ class HighscoreSystem:
                         name = str(item.get("name", "Player"))
                         score = int(item.get("score", 0))
                         loaded.append(HighscoreEntry(name, score))
-                    except (TypeError, ValueError):
+                    except (TypeError, ValueError, OverflowError):
                         pass
             self.entries = sorted(
                 loaded,
