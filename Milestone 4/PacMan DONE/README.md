@@ -4,16 +4,17 @@
 
 ## Description
 
-A complete, playable recreation of the classic Pac-Man arcade game, built in Python using **pygame**.  
-The player navigates a maze eating dots, avoids (or eats) ghosts, and tries to clear all levels before time runs out.
+A playable Pac-Man game written in Python with **pygame**. The player navigates a generated maze, collects pacgums, avoids or eats ghosts, and progresses through multiple timed levels.
 
 Key features:
-- Procedurally generated mazes (via the external A-Maze-ing package)
-- Full ghost AI (chase and flee behaviors)
-- Persistent highscore system (top 10, player names, JSON storage)
-- All menus: main menu, pause, highscores, instructions, game over, victory
-- Cheat mode for peer evaluation
-- Configurable via a JSON file
+- At least 10 levels, with maze dimensions and game settings configurable in a JSON file.
+- Level 1 uses the configured fixed seed; later levels use newly generated random seeds.
+- Four ghosts move through corridors, chase the player, flee while edible, and return to their home corners after being eaten.
+- Pacgums and corner power pellets award configurable points. Eating a power pellet makes ghosts edible for a limited time.
+- Remaining lives and score carry forward between levels. Losing all lives or running out of level time ends the game.
+- Main menu, instructions, pause screen, in-game HUD, highscore table, name entry, game-over screen, and victory screen.
+- Persistent JSON highscore table containing the top 10 entries.
+- Cheat mode for peer evaluation, with invincibility, level skip, ghost freeze, life and time adjustments, and a speed boost.
 
 ---
 
@@ -23,22 +24,33 @@ Key features:
 
 - Python 3.10 or later
 - `pip` package manager
-- The `mazegenerator` wheel included in this repository (`Pac-Man/mazegenerator-00001-py3-none-any.whl`)
+- The assigned A-Maze-ing wheel in `Pac-Man/mazegenerator-00001-py3-none-any.whl`
+
+Use a Python version with a compatible Pygame wheel when possible. If `pip` tries to compile Pygame from source, use a supported Python version or install the SDL development dependencies for your operating system.
 
 ### Installation
 
 ```bash
 make install
 ```
+The Makefile creates a local `.venv`, then installs the Python requirements and the assigned maze-generator wheel into that environment. On macOS with Homebrew Python 3.15, Pygame 2.6.1 may be built from source and require SDL headers; install Python 3.13 and select it explicitly if needed:
+
+```bash
+brew install python@3.13
+rm -rf .venv
+make install PYTHON3=python3.13
+```
+
 ### Running the game
 
 ```bash
 make run
 ```
 
-Pass any config file as the single argument:
+The command above uses `config.json`. To select another JSON configuration, run the main script with exactly one config path:
+
 ```bash
-python3 pac-man.py my_config.json
+.venv/bin/python pac-man.py my_config.json
 ```
 
 ### Other Makefile targets
@@ -59,10 +71,14 @@ python3 pac-man.py my_config.json
 | Key | Action |
 |-----|--------|
 | Arrow keys / WASD | Move Pac-Man |
-| P / ESC (in game) | Pause |
-| ENTER | Confirm / select menu item |
+| P / ESC (during play) | Pause the game |
+| ENTER / P (while paused) | Resume the game |
+| ESC (while paused) | Abandon the current game and return to the main menu |
+| ENTER | Confirm a menu selection or submit the highscore name |
 
 ### Cheat Mode (for peer evaluation)
+
+During gameplay, press Shift+C to enable cheat mode, then use the keys below. Press Shift+C again to disable it; continuous cheats are reset.
 
 | Key | Effect |
 |-----|--------|
@@ -70,7 +86,7 @@ python3 pac-man.py my_config.json
 | I | Toggle invincibility (ghosts can't kill you) |
 | F | Freeze / unfreeze all ghosts |
 | L / R | Add / remove a life |
-| + / - | Add / remove level time |
+| + / - | Add / remove 10 seconds |
 | T | Freeze / unfreeze the timer |
 | B | Toggle speed boost |
 | X | Skip current level (immediately win) |
@@ -83,8 +99,11 @@ The game reads a JSON configuration file passed as a command-line argument.
 
 ### File format
 
+The file is JSON with support for full-line comments beginning with `#` or `//`.
+
 ```json
 {
+    # These are examples; omitted values use the defaults below.
     "highscore_filename": "data/highscores.json",
     "lives": 3,
     "pacgum": 42,
@@ -105,14 +124,14 @@ The game reads a JSON configuration file passed as a command-line argument.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `highscore_filename` | string | `"data/highscores.json"` | Path to highscore storage file |
-| `lives` | int | `3` | Starting lives (clamped 1–99) |
-| `pacgum` | int | `42` | Maximum regular pacgums placed per level (clamped 1–2500) |
-| `points_per_pacgum` | int | `10` | Score per pacgum eaten |
-| `points_per_super_pacgum` | int | `50` | Score per power pellet eaten |
-| `points_per_ghost` | int | `200` | Score per edible ghost eaten |
-| `seed` | int | `42` | Fixed seed for level 1 maze |
-| `level_max_time` | int | `224` | Base seconds per level (clamped 10–999) |
-| `level` | array | 10 × 17×17 | Array of `{"width": N, "height": N}` objects |
+| `lives` | int | `3` | Starting lives (clamped to 1–99) |
+| `pacgum` | int | `42` | Maximum regular pacgums per level (clamped to 1–2500) |
+| `points_per_pacgum` | int | `10` | Points per regular pacgum (clamped to 1–10000) |
+| `points_per_super_pacgum` | int | `50` | Points per power pellet (clamped to 1–10000) |
+| `points_per_ghost` | int | `200` | Points per edible ghost (clamped to 1–10000) |
+| `seed` | int | `42` | Fixed seed for level 1 (clamped to 0–4294967295) |
+| `level_max_time` | int | `224` | Base seconds for level 1 (clamped to 10–999) |
+| `level` | array | 10 × 17×17 | Array of `{"width": N, "height": N}` objects; at least 10 levels are used |
 
 ### Faulty config handling
 
@@ -120,7 +139,8 @@ The game reads a JSON configuration file passed as a command-line argument.
 - **Invalid/out-of-range values**: clamped to the nearest valid value.
 - **Unknown keys**: silently ignored.
 - **Non-JSON file or missing file**: clean error message printed, program exits without traceback.
-- **Dimensions**: must be odd numbers for proper corridor generation; even values are bumped up by 1 automatically.
+- **Dimensions**: widths are clamped to 11–61 and heights to 11–31, then rounded up to odd values. Missing or invalid dimensions use 17×17. If fewer than 10 levels are supplied, 17×17 levels are appended.
+- **Comments**: only full lines beginning with `#` or `//` are removed before JSON parsing; inline comments are not supported.
 
 ---
 
@@ -139,7 +159,7 @@ Highscores are stored as a JSON array in the file specified by `highscore_filena
 
 ### Behaviour
 
-- **Load**: read on game start; on any file error (missing, corrupt, wrong type) the list is silently reset to empty.
+- **Load**: read on game start; a missing file starts with an empty list. Corrupt, unreadable, or incorrectly structured data is reset to an empty list and logged as a warning.
 - **Save**: written after the player enters their name at game end.
 - **Top 10**: only the top 10 scores are kept.
 - **Name rules**: 1–10 characters, alphanumeric and spaces only. Invalid names default to `"Player"`.
@@ -166,7 +186,7 @@ grid = mg.maze  # list[list[int]], each value is a bitmask
 - **`perfect=False`**: produces corridors with loops, suitable for Pac-Man (multiple paths, no dead-ends-only maze).
 - **Bitmask encoding**: each cell is an integer where `bit0=North, bit1=East, bit2=South, bit3=West`. A **set** bit means a wall is present in that direction (verified empirically against the assigned package); a clear bit means the corridor is open.
 - **Level 1**: uses the fixed `seed` from config for reproducibility.
-- **Subsequent levels**: use `random.randint(0, 2^32-1)` for variety.
+- **Subsequent levels**: use a seed from `random.SystemRandom().randint(0, 2^32 - 1)` so each maze is newly randomized.
 - **Failure handling**: if `MazeGenerator` raises any exception, it is caught, logged, and propagated cleanly without a traceback reaching the user.
 
 The wrapper in `src/maze.py` adapts the raw grid, ensuring the row/column ordering is consistent with the renderer and entity system.
@@ -197,7 +217,7 @@ src/
 - **State machine** (`GameState` enum in `game.py`): all screen transitions are explicit enum values — no ad-hoc flags.
 - **Ghost AI**: greedy distance-based with a small random jitter, producing natural-looking but imperfect chase behavior. Ghosts switch to flee mode when edible.
 - **Type hints everywhere**: all functions and class attributes carry type annotations; compatible with `mypy`.
-- **Docstrings**: Google-style docstrings on all public functions and classes (PEP 257).
+- **Docstrings**: Google-style docstrings document every project function and class, including private helpers (PEP 257).
 - **Exception handling**: try/except guards all I/O (config, highscores) and the maze generator call.
 
 ---
@@ -255,14 +275,14 @@ src/
 
 ## Project Packaging
 
-A PyInstaller spec (`pacman.spec`, at the repository root) builds a
-standalone one-file executable that bundles the game and its assets:
+The root `pacman.spec` builds a one-file executable and bundles the game sprites. `make package` also places `config.json` beside the executable and creates an OS-specific ZIP in the project root:
 
-```bash
-make package
-The executable is produced in `dist/pacman` (build artefacts in
-`build/` and `dist/` are intentionally untracked — see `.gitignore`).
-```
+- macOS build: `pacman-macos.zip`
+- Linux build: `pacman-linux.zip`
+
+The executable is `dist/pacman`. PyInstaller builds for the operating system and architecture on which it runs; create the Linux ZIP on a compatible Linux machine (for example, Linux x86_64 for x86_64 evaluation PCs). A macOS build cannot be used as the Linux package. Build artefacts in `build/` and `dist/` are intentionally untracked — see `.gitignore`.
+
+Upload the platform ZIP to the project's itch.io downloadable page. Add the published itch.io page URL here once it is available.
 
 ## Project Management
 
@@ -281,9 +301,4 @@ See [`project_management/PROJECT_MANAGEMENT.md`](project_management/PROJECT_MANA
 - [pygame documentation](https://www.pygame.org/docs/) — rendering, events, clock
 
 ### AI usage
-AI assistance  was used for the following tasks in this project:
-- **Initial architecture planning**: discussing module boundaries and the separation of domain vs. presentation layers.
-- **Boilerplate generation**: class skeletons, docstring templates, and type hint patterns.
-- **README drafting**: first draft of section structure, then reviewed and rewritten.
-
-All AI-generated content was reviewed, understood, tested, and adapted before inclusion. No code was copied without full comprehension of its behaviour.
+AI assistance was used for architecture discussions, code and docstring drafting, README drafting and review, and troubleshooting the build setup. The project authors are responsible for reviewing, understanding, and testing all AI-assisted changes before submission.

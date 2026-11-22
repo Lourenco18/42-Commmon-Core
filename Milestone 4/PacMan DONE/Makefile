@@ -1,9 +1,10 @@
+PYTHON3 ?= python3
 VENV := .venv
 PYTHON := $(VENV)/bin/python
 
 
 $(PYTHON):
-	python3 -m venv $(VENV)
+	$(PYTHON3) -m venv $(VENV)
 
 install: $(PYTHON)
 	$(PYTHON) -m pip install -r requirements.txt
