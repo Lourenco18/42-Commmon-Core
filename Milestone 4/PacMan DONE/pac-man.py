@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+    """Validate command-line usage and start the configured game."""
     if len(sys.argv) != 2:
         print("Usage: python3 pac-man.py <config.json>")
         sys.exit(1)

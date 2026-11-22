@@ -17,20 +17,52 @@ WEST: int = 8
 
 class Maze:
 
+    """Expose dimensions, walls, and traversable neighboring cells."""
     def __init__(self, width: int, height: int, grid: list[list[int]]) -> None:
+        """Initialize a Maze instance.
+
+        Args:
+            width: Maze width in cells.
+            height: Maze height in cells.
+            grid: Maze cells encoded as wall bitmasks."""
         self.width: int = width
         self.height: int = height
         self.grid: list[list[int]] = grid
 
     def is_wall(self, row: int, col: int, direction: int) -> bool:
+        """Check whether a cell has a wall in the requested direction.
+
+        Args:
+            row: Maze row coordinate.
+            col: Maze column coordinate.
+            direction: Direction or wall bit to inspect.
+
+        Returns:
+            Result of the operation."""
         if row < 0 or row >= self.height or col < 0 or col >= self.width:
             return True
         return bool(self.grid[row][col] & direction)
 
     def passable(self, row: int, col: int) -> bool:
+        """Check whether a cell is inside the maze bounds.
+
+        Args:
+            row: Maze row coordinate.
+            col: Maze column coordinate.
+
+        Returns:
+            Result of the operation."""
         return 0 <= row < self.height and 0 <= col < self.width
 
     def neighbours(self, row: int, col: int) -> list[tuple[int, int]]:
+        """Return adjacent cells reachable without crossing walls.
+
+        Args:
+            row: Maze row coordinate.
+            col: Maze column coordinate.
+
+        Returns:
+            Result of the operation."""
         result: list[tuple[int, int]] = []
         directions = [(NORTH, -1, 0), (EAST, 0, 1),
                       (SOUTH, 1, 0), (WEST, 0, -1)]
@@ -42,12 +74,24 @@ class Maze:
 
 
 def generate_maze(width: int, height: int, seed: Optional[int] = None) -> Maze:
+    """Generate a maze with the assigned package and adapt its grid.
+
+    Args:
+        width: Maze width in cells.
+        height: Maze height in cells.
+        seed: Optional seed for reproducible generation.
+
+    Returns:
+        Result of the operation."""
     if width % 2 == 0:
         width += 1
     if height % 2 == 0:
         height += 1
-    actual_seed: int = seed if seed is not None else random.randint(
-        0, 2**32 - 1)
+    actual_seed: int = (
+        seed
+        if seed is not None
+        else random.SystemRandom().randint(0, 2**32 - 1)
+    )
     try:
         mg = MazeGenerator(
             size=(

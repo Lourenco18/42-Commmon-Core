@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by dasantos*
+*This project has been created as part of the 42 curriculum by dasantos, fjose-hi.*
 
 # Pac-Man
 
@@ -36,25 +36,6 @@ make install
 make run
 ```
 
-On Linux, the source version can be run with the same commands after installing
-Python 3.10 or later and the project dependencies:
-
-```bash
-make install
-make run
-```
-
-To create a downloadable Linux build, run `make package` on Linux after
-installing the dependencies. It creates `pacman-linux.zip` in the project
-directory, containing the standalone `pacman` executable and `config.json`.
-Build the package on the target operating system; PyInstaller does not create
-Linux executables when run on macOS or Windows.
-After extracting the archive, launch the game from that directory with:
-
-```bash
-./pacman config.json
-```
-
 Pass any config file as the single argument:
 ```bash
 python3 pac-man.py my_config.json
@@ -85,9 +66,12 @@ python3 pac-man.py my_config.json
 
 | Key | Effect |
 |-----|--------|
+| Shift+C | Toggle cheat mode |
 | I | Toggle invincibility (ghosts can't kill you) |
 | F | Freeze / unfreeze all ghosts |
-| L | Add an extra life |
+| L / R | Add / remove a life |
+| + / - | Add / remove level time |
+| T | Freeze / unfreeze the timer |
 | B | Toggle speed boost |
 | X | Skip current level (immediately win) |
 
@@ -121,22 +105,22 @@ The game reads a JSON configuration file passed as a command-line argument.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `highscore_filename` | string | `"data/highscores.json"` | Path to highscore storage file |
-| `lives` | int | `3` | Starting lives (clamped 1–10) |
-| `pacgum` | int | `42` | Max pacgums placed per level (clamped 1–500) |
+| `lives` | int | `3` | Starting lives (clamped 1–99) |
+| `pacgum` | int | `42` | Maximum regular pacgums placed per level (clamped 1–2500) |
 | `points_per_pacgum` | int | `10` | Score per pacgum eaten |
 | `points_per_super_pacgum` | int | `50` | Score per power pellet eaten |
 | `points_per_ghost` | int | `200` | Score per edible ghost eaten |
 | `seed` | int | `42` | Fixed seed for level 1 maze |
-| `level_max_time` | int | `90` | Seconds per level (clamped 10–600) |
-| `level` | array | 10 × 21×21 | Array of `{"width": N, "height": N}` objects. Each dimension is clamped to 11–51, then rounded up to an odd number. |
+| `level_max_time` | int | `224` | Base seconds per level (clamped 10–999) |
+| `level` | array | 10 × 17×17 | Array of `{"width": N, "height": N}` objects |
 
 ### Faulty config handling
 
-- **Missing keys**: safe defaults are used with a warning.
+- **Missing keys**: safe defaults are used automatically.
 - **Invalid/out-of-range values**: clamped to the nearest valid value.
 - **Unknown keys**: silently ignored.
 - **Non-JSON file or missing file**: clean error message printed, program exits without traceback.
-- **Dimensions**: width and height are independently clamped to 11–51, then even values are bumped up by 1 so the maze dimensions are odd. For example, 50 becomes 51; values above 51 remain 51.
+- **Dimensions**: must be odd numbers for proper corridor generation; even values are bumped up by 1 automatically.
 
 ---
 
@@ -155,7 +139,7 @@ Highscores are stored as a JSON array in the file specified by `highscore_filena
 
 ### Behaviour
 
-- **Load**: read on game start; a missing or invalid file starts with an empty list, and read/parse errors are logged.
+- **Load**: read on game start; on any file error (missing, corrupt, wrong type) the list is silently reset to empty.
 - **Save**: written after the player enters their name at game end.
 - **Top 10**: only the top 10 scores are kept.
 - **Name rules**: 1–10 characters, alphanumeric and spaces only. Invalid names default to `"Player"`.
@@ -271,23 +255,14 @@ src/
 
 ## Project Packaging
 
-A PyInstaller spec (`pacman.spec`, in this project directory) builds a
+A PyInstaller spec (`pacman.spec`, at the repository root) builds a
 standalone one-file executable that bundles the game and its assets:
 
 ```bash
 make package
+The executable is produced in `dist/pacman` (build artefacts in
+`build/` and `dist/` are intentionally untracked — see `.gitignore`).
 ```
-
-The executable is produced in `dist/pacman`; `make package` also creates
-`pacman-linux.zip` when run on Linux (or a platform-named archive on another
-OS). Build on Linux to distribute a Linux executable. Build artifacts in
-`build/` and `dist/` are intentionally untracked — see `.gitignore`.
-
-### Published build
-
-The game is published on [itch.io](https://lourenco18.itch.io/pacman-42).
-The page currently requires a password; provide access to the evaluator
-through the approved private submission channel.
 
 ## Project Management
 

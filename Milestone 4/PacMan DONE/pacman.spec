@@ -1,8 +1,11 @@
+from pathlib import Path
+
+project_root = Path(SPECPATH)
 a = Analysis(
     ['pac-man.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[(str(project_root / 'assets'), 'assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

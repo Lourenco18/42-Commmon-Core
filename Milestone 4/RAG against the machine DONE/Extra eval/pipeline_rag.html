@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pipeline RAG passo a passo</title>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--ink:#1f2937;--mut:#6b7280;--acc:#2563eb;--soft:#eff6ff;--line:#e5e7eb;--code:#f3f4f6;--ok:#15803d;--bad:#b91c1c;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f172a;--card:#1e293b;--ink:#e5e7eb;--mut:#94a3b8;--acc:#60a5fa;--soft:#1e3a5f;--line:#334155;--code:#0b1220;--ok:#4ade80;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#0f172a;--card:#1e293b;--ink:#e5e7eb;--mut:#94a3b8;--acc:#60a5fa;--soft:#1e3a5f;--line:#334155;--code:#0b1220;--ok:#4ade80;--bad:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.5rem;margin:0 0 2px}.sub{color:var(--mut);margin:0 0 16px;font-size:.95rem}
+#nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px}
+#nav button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:.85rem;cursor:pointer}
+#nav button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+#nav button.done{border-color:var(--acc)}
+.bar{height:4px;background:var(--line);border-radius:4px;margin-bottom:14px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc);transition:width .25s}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h2{margin:0 0 4px;font-size:1.25rem}
+.cmd{display:inline-block;font:.8rem ui-monospace,Menlo,Consolas,monospace;background:var(--code);border-radius:6px;padding:2px 8px;color:var(--acc);margin-bottom:8px}
+h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:16px 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--soft);color:var(--acc);border-radius:6px;padding:2px 9px;font-size:.85rem;font-weight:600}
+.fn{font:.82rem ui-monospace,Menlo,Consolas,monospace;background:var(--code);border-radius:6px;padding:2px 7px}
+.tech{display:grid;gap:8px}
+.t{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.t b{color:var(--acc)}.t span{display:block;font-size:.92rem}
+.t em{font-style:normal;color:var(--ok);font-weight:600}
+.demo{background:var(--soft);border-radius:10px;padding:12px;margin-top:14px}
+.demo input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.row input{width:100%}
+.tok{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}.tok span{font:.8rem ui-monospace,Menlo,Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+.ctl{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+.ctl button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.ctl button.p{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.ctl button:disabled{opacity:.4;cursor:default}
+.note{font-size:.85rem;color:var(--mut)}
+.t .deep{color:var(--mut);font-size:.85rem;border-top:1px dashed var(--line);margin-top:6px;padding-top:6px}
+.flow{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0 10px}.flow span{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:.82rem}.flow b{color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+<h1>Pipeline RAG, passo a passo</h1>
+<p class="sub">Do <b>make install</b> até à resposta e à avaliação. Usa as setas do teclado ou os botões.</p>
+<div id="nav"></div><div class="bar"><i id="pg"></i></div>
+<div class="card" id="card"></div>
+<div class="ctl"><button id="prev">← Anterior</button><button id="next" class="p">Seguinte →</button></div>
+</main>
+<script>
+const S=[
+{t:"Instalar e preparar",cmd:"make install · make prepare",fn:[],
+ w:"Cria o ambiente Python isolado e coloca os dados no sítio: o código do vLLM (a base de conhecimento), as perguntas e, se possível, o modelo.",
+ k:["ambiente virtual","lockfile","dependências","reprodutibilidade"],
+ tech:[["uv","gestor de pacotes e ambientes Python","muito rápido e, com o uv.lock, todos instalam exatamente as mesmas versões"],["pyproject.toml","declara as dependências do projeto num só ficheiro","padrão moderno e legível por todas as ferramentas"]]},
+{t:"Indexar: o que é e onde acontece",cmd:"make index → python -m student index --max_chunk_size 2000",fn:["RAGSystem.index","BM25Index.build","BM25Index.save"],demo:"idx",
+ w:"Indexar é preparar a base de conhecimento para pesquisa rápida. Faz-se uma vez, offline, antes de qualquer pergunta. Acontece no make index, que chama RAGSystem.index, depois BM25Index.build (passos 3 a 6) e por fim BM25Index.save. Resultado: bm25.pkl, chunks_meta.json e chunk_texts.pkl em data/processed/bm25_index. O make exam-retrieval volta a indexar antes de testar.",
+ k:["indexação","offline vs online","persistência","build / save","reutilização"],
+ tech:[["make","orquestra os comandos do projeto","um comando fixo e repetível (make index) em vez de lembrar flags e caminhos"],["pickle + JSON","guardam o índice e os metadados em disco","depois de indexar, cada pesquisa só carrega ficheiros em vez de reler 1900 ficheiros"]]},
+{t:"Recolher ficheiros",cmd:"make index (1 de 4)",fn:["collect_files","should_skip_file"],
+ w:"Percorre o repositório e fica só com texto útil (.py, .md, .rst, .yaml…). Ignora .git, build, binários e pastas pesadas.",
+ k:["os.walk","filtro por extensão","ruído","cobertura"],
+ tech:[["Python (os)","navega nas pastas e lê ficheiros","biblioteca standard: sem dependências e comportamento previsível"]]},
+{t:"Chunking",cmd:"make index (2 de 4)",fn:["get_file_chunks","chunk_python_file","chunk_text_file"],
+ w:"Parte cada ficheiro em pedaços de até 2000 caracteres. Python corta por função e classe; texto e markdown cortam por parágrafos. Guarda só (ficheiro, início, fim).",
+ k:["chunk","AST","offsets","janela de contexto","granularidade"],
+ tech:[["ast","lê a estrutura sintática do código Python","nunca corta uma função a meio, por isso cada chunk faz sentido sozinho"]]},
+{t:"Tokenização",cmd:"make index (3 de 4)",fn:["tokenize"],demo:"tok",
+ w:"Transforma texto em lista de palavras comparáveis: minúsculas, sem pontuação, e parte snake_case em partes mantendo o token completo.",
+ k:["token","normalização","snake_case","bag of words"],
+ tech:[["re (regex)","separa e limpa o texto com padrões","rápido e totalmente controlável, importante em código com identificadores"]]},
+{t:"Índice BM25",cmd:"make index (4 de 4)",fn:["BM25Okapi","BM25Index.save"],
+ w:"Calcula para cada termo quão raro é (IDF) e quantas vezes aparece em cada chunk (TF). Guarda tudo em disco para não reindexar de cada vez.",
+ k:["TF","IDF","k1 (saturação)","b (comprimento)","serialização"],
+ tech:[["rank_bm25","implementa o ranking BM25","sem GPU nem treino, rápido, e excelente em termos exatos como nomes de funções e flags"],["pickle + JSON","guardam o índice e os metadados","carregar do disco demora milissegundos"]]},
+{t:"Pesquisa top-k",cmd:"search · search_dataset",fn:["RAGSystem.search","BM25Index.search","_validate_k"],
+ w:"Tokeniza a pergunta, pontua todos os chunks, ordena e devolve os k melhores (score maior que 0, sem repetidos) como ficheiro mais intervalo de caracteres.",
+ k:["retrieval","score","ranking","top-k","MinimalSource"],
+ tech:[["Pydantic","valida a estrutura dos dados (MinimalSearchResults, StudentSearchResults)","erros de formato falham cedo e com mensagem clara"],["Fire","transforma métodos da classe em comandos de terminal","zero código de argparse"],["tqdm","mostra barra de progresso","feedback em tarefas longas"]]},
+{t:"Montar o contexto",cmd:"answer (1 de 2)",fn:["_resolve_context_path","_build_prompt"],
+ w:"Das k fontes usa as 3 melhores, relê o texto real do ficheiro (content[início:fim]), limita a 2000 caracteres e junta tudo com a pergunta num prompt.",
+ k:["prompt","grounding","contexto","janela de contexto"],
+ tech:[["Prompt com instruções","manda usar só o contexto e admitir quando não sabe","principal defesa contra alucinação num modelo pequeno"]]},
+{t:"Gerar a resposta",cmd:"answer (2 de 2)",fn:["AnswerGenerator.load","AnswerGenerator.generate"],
+ w:"O Qwen3-0.6B lê o prompt e escreve a resposta token a token, só com base no contexto. Geração greedy (sempre o token mais provável), estável e repetível.",
+ k:["LLM","token","greedy decoding","chat template","repetition_penalty","MPS/CUDA/CPU"],
+ tech:[["transformers","carrega o tokenizer e o modelo e gera texto","API única para milhares de modelos"],["PyTorch","executa a rede neuronal em CPU ou GPU","escolhe o melhor dispositivo disponível"],["Qwen3-0.6B","o LLM imposto pelo subject","pequeno, corre num portátil sem GPU"]]},
+{t:"Avaliar",cmd:"exam-retrieval · evaluate",fn:["evaluate","_compute_recall_at_k","_source_found","_iou"],demo:"iou",
+ w:"Compara as fontes recuperadas com as corretas. Conta como encontrada se for o mesmo ficheiro e o IoU dos intervalos passar um limiar. Recall@k é a fração encontrada. Metas: docs 0.80 e code 0.50 em Recall@5.",
+ k:["recall@k","IoU","threshold","gabarito","moulinette"],
+ tech:[["moulinette","avaliador oficial binário","é ele que dá a nota real"],["flake8 + mypy","verificam estilo e tipos","código consistente e menos bugs"]]}
+];
+const DEEP={
+"make":"cada target (install, index, exam-retrieval…) é uma receita de comandos shell; o .PHONY avisa que o target não é um ficheiro, por isso corre sempre.",
+"uv":"escrito em Rust, resolve e instala dependências em paralelo com cache global. O uv.lock fixa versões exatas e o uv sync cria o .venv a partir dele.",
+"pyproject.toml":"formato padrão (PEP 621): a secção [project] lista dependências e a versão mínima de Python; as ferramentas (mypy, flake8) lêem as suas próprias secções.",
+"Python (os)":"os.walk percorre as pastas recursivamente e devolve pasta, subpastas e ficheiros. Rejeitar cedo o que não interessa poupa leituras de disco.",
+"ast":"ast.parse transforma o código numa árvore. Cada função ou classe traz as linhas de início e fim, que servem de pontos de corte. Se houver erro de sintaxe, usa-se o chunker de texto.",
+"re (regex)":"o padrão que separa o texto corta em tudo o que não é letra, número ou underscore. Depois, um segundo passo parte os identificadores em snake_case.",
+"rank_bm25":"score = soma, por termo da pergunta, de IDF × f(k1+1) / (f + k1(1−b+b·tamanho/média)). Por defeito k1 = 1.5 e b = 0.75. get_scores devolve um score para cada chunk.",
+"pickle + JSON":"pickle serializa objetos Python (rápido, mas só se confia em ficheiros próprios). JSON guarda os metadados legíveis: ficheiro, início e fim de cada chunk.",
+"Pydantic":"ao criar um objeto confere os tipos dos campos e falha com a indicação exata do campo errado. Garante que os JSON de pesquisa e de resposta têm o formato certo.",
+"Fire":"inspeciona a assinatura dos métodos (nomes, tipos, valores por defeito) e gera a CLI: --k 10 passa a ser o argumento k do método.",
+"tqdm":"envolve um ciclo e mostra percentagem, velocidade e tempo restante. Escreve no stderr, por isso não mistura com o resultado impresso no stdout.",
+"Prompt com instruções":"o chat template converte as mensagens para o formato com que o modelo foi treinado. Com enable_thinking=False o Qwen3 responde direto, sem raciocínio longo.",
+"transformers":"AutoTokenizer e AutoModelForCausalLM leem o config.json e os pesos do modelo. Tenta primeiro os ficheiros locais (cache ou data/models) e só depois descarrega.",
+"PyTorch":"aqui só faz inferência (modelo em modo eval, sem gradientes). Escolhe MPS no Mac, CUDA em GPU NVIDIA ou CPU; usa float16 em GPU e float32 em CPU.",
+"Qwen3-0.6B":"transformer só-decoder com 0,6 mil milhões de parâmetros: gera um token de cada vez com base nos anteriores. Sendo pequeno, depende muito de um bom contexto.",
+"moulinette":"binário externo que lê os teus JSON, compara com o gabarito privado e imprime PASS com o Recall@5. Não depende do teu código de avaliação.",
+"flake8 + mypy":"flake8 aplica as regras de estilo (PEP 8). O mypy verifica as anotações de tipos sem executar o código."};
+let i=0;const $=id=>document.getElementById(id);
+function tokenize(t){const out=[];t.toLowerCase().split(/[^\w]+/).forEach(x=>{if(x.length>1){x.split("_").filter(p=>p.length>1).forEach(p=>out.push(p));out.push(x)}});return out.filter(x=>x.length>1)}
+function iou(a1,a2,b1,b2){const it=Math.max(0,Math.min(a2,b2)-Math.max(a1,b1));const un=Math.max(a2,b2)-Math.min(a1,b1);return un>0?it/un:0}
+function demo(d){
+ if(d==="idx")return `<div class="demo"><h3 style="margin-top:0">Offline (make index, uma vez)</h3><div class="flow"><span>ficheiros</span>→<span>chunks</span>→<span>tokens</span>→<span>BM25</span>→<span><b>disco</b></span></div><h3 style="margin-top:8px">Online (cada pergunta)</h3><div class="flow"><span>pergunta</span>→<span>tokens</span>→<span>BM25 <b>(lido do disco)</b></span>→<span>top-k</span>→<span>LLM</span>→<span>resposta</span></div><p class="note">Indexar é tudo o que está na linha de cima. Por isso a pesquisa é rápida.</p></div>`;
+ if(d==="tok")return `<div class="demo"><h3 style="margin-top:0">Experimenta o tokenize</h3><input id="q" value="How to configure_openai_server?"><div class="tok" id="tk"></div><p class="note">Repara que o token completo também fica na lista, e que camelCase não é separado.</p></div>`;
+ if(d==="iou")return `<div class="demo"><h3 style="margin-top:0">Calculadora de IoU (mesmo ficheiro)</h3><div class="row"><input id="a1" type="number" value="1200"><input id="a2" type="number" value="1650"><input id="b1" type="number" value="1180"><input id="b2" type="number" value="1700"></div><p class="note">início e fim da fonte correta · início e fim da recuperada</p><p id="io"></p></div>`;
+ return"";}
+function wire(){
+ const q=$("q");if(q){const u=()=>{$("tk").innerHTML=tokenize(q.value).map(x=>`<span>${x.replace(/</g,"&lt;")}</span>`).join("")};q.oninput=u;u()}
+ if($("a1")){const u=()=>{const v=["a1","a2","b1","b2"].map(x=>+$(x).value);const r=iou(...v);const ok=r>=0.05;$("io").innerHTML=`IoU = <b>${r.toFixed(3)}</b> → <b style="color:var(${ok?"--ok":"--bad"})">${ok?"fonte encontrada":"não encontrada"}</b> (limiar 0.05)`};["a1","a2","b1","b2"].forEach(x=>$(x).oninput=u);u()}
+}
+function render(){
+ const s=S[i];
+ $("card").innerHTML=`<span class="cmd">${s.cmd}</span><h2>${i+1}. ${s.t}</h2><p>${s.w}</p>
+ ${s.fn.length?`<h3>Funções</h3><div class="chips">${s.fn.map(f=>`<span class="fn">${f}</span>`).join("")}</div>`:""}
+ <h3>Termos técnicos</h3><div class="chips">${s.k.map(k=>`<span class="chip">${k}</span>`).join("")}</div>
+ <h3>Tecnologias: para que servem e porque são boas aqui</h3><div class="tech">${s.tech.map(t=>`<div class="t"><b>${t[0]}</b><span>${t[1]}.</span><span><em>Porquê:</em> ${t[2]}.</span>${DEEP[t[0]]?`<span class="deep"><em>Por dentro:</em> ${DEEP[t[0]]}</span>`:""}</div>`).join("")}</div>
+ ${demo(s.demo)}`;
+ $("nav").innerHTML=S.map((x,n)=>`<button class="${n===i?"on":n<i?"done":""}" data-n="${n}">${n+1}. ${x.t}</button>`).join("");
+ $("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>{i=+b.dataset.n;render()});
+ $("pg").style.width=((i+1)/S.length*100)+"%";
+ $("prev").disabled=i===0;$("next").disabled=i===S.length-1;
+ const on=$("nav").querySelector(".on");if(on)on.scrollIntoView({inline:"center",block:"nearest"});
+ wire();
+}
+$("prev").onclick=()=>{if(i>0){i--;render()}};$("next").onclick=()=>{if(i<S.length-1){i++;render()}};
+document.onkeydown=e=>{if(e.target.tagName==="INPUT")return;if(e.key==="ArrowRight")$("next").click();if(e.key==="ArrowLeft")$("prev").click()};
+render();
+</script>
+</body>
+</html>

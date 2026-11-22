@@ -56,7 +56,7 @@ JSON was chosen for its simplicity and human-readability. The file is written on
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
 | A-Maze-ing package API changes | Low | High | Wrapper in `maze.py` isolates the dependency |
-| Maze too large for screen | Medium | Medium | Configured dimensions are clamped to 11–51; the window is sized from fixed 24-pixel cells |
+| Maze too large for screen | Medium | Medium | Cell size auto-scales; min window size enforced |
 | Config file malformed | High | Low | All values clamped to safe defaults, no crash |
 | Highscore file corruption | Medium | Low | Graceful reset to empty list on error |
 

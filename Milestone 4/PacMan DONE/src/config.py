@@ -12,30 +12,35 @@ DEFAULTS: dict[str, Any] = {
     "points_per_super_pacgum": 50,
     "points_per_ghost": 200,
     "seed": 42,
-    "level_max_time": 90,
-    "level": [{"width": 21, "height": 21}] * 10,
+    "level_max_time": 224,
+    "level": [{"width": 17, "height": 17}] * 10,
 }
 
 INT_CLAMPS: dict[str, tuple[int, int]] = {
-    "lives": (1, 10),
-    "pacgum": (1, 500),
+    "lives": (1, 99),
+    "pacgum": (1, 2500),
     "points_per_pacgum": (1, 10000),
     "points_per_super_pacgum": (1, 10000),
     "points_per_ghost": (1, 10000),
     "seed": (0, 2**32 - 1),
-    "level_max_time": (10, 600),
+    "level_max_time": (10, 999),
 }
 
 
 def _get_int(data: dict[str, Any], key: str) -> int:
+    """Read an integer setting and clamp it to its safe range.
+
+    Args:
+        data: Configuration values to validate.
+        key: Name of the setting or value to inspect.
+
+    Returns:
+        Result of the operation."""
     default = DEFAULTS[key]
-    if key not in data:
-        logger.warning("Config: '%s' missing, using default %s", key, default)
-        return int(default)
     raw = data.get(key, default)
     try:
         val = int(raw)
-    except (TypeError, ValueError, OverflowError):
+    except (TypeError, ValueError):
         logger.warning("Config: '%s' invalid, using default %s", key, default)
         return int(default)
     lo, hi = INT_CLAMPS[key]
@@ -47,75 +52,55 @@ def _get_int(data: dict[str, Any], key: str) -> int:
 
 
 def _parse_levels(raw_levels: Any) -> list[dict[str, int]]:
+    """Validate level dimensions and provide at least ten levels.
+
+    Args:
+        raw_levels: Level specifications from the configuration.
+
+    Returns:
+        Result of the operation."""
     if not isinstance(raw_levels, list) or len(raw_levels) == 0:
         logger.warning("Config: 'level' missing/empty, using 10 defaults")
-        return [{"width": 21, "height": 21}] * 10
+        return [{"width": 17, "height": 17}] * 10
     parsed: list[dict[str, int]] = []
     for i, lvl in enumerate(raw_levels):
         if not isinstance(lvl, dict):
-            logger.warning(
-                "Config: 'level[%d]' invalid, using default 21x21", i + 1)
-            parsed.append({"width": 21, "height": 21})
+            parsed.append({"width": 17, "height": 17})
             continue
-        missing_dimensions = [
-            dimension for dimension in ("width", "height")
-            if dimension not in lvl
-        ]
-        if missing_dimensions:
-            logger.warning(
-                "Config: 'level[%d]' missing %s, using 21 for missing "
-                "dimension(s)",
-                i + 1,
-                ", ".join(missing_dimensions))
         try:
-            raw_width = int(lvl.get("width", 21))
-            raw_height = int(lvl.get("height", 21))
-        except (TypeError, ValueError, OverflowError):
-            logger.warning(
-                "Config: 'level[%d]' has invalid dimensions, using 21x21",
-                i + 1)
-            w, h = 21, 21
-        else:
-            w = max(11, min(51, raw_width))
-            h = max(11, min(51, raw_height))
-            if w != raw_width:
-                logger.warning(
-                    "Config: 'level[%d].width' clamped %d -> %d",
-                    i + 1,
-                    raw_width,
-                    w)
-            if h != raw_height:
-                logger.warning(
-                    "Config: 'level[%d].height' clamped %d -> %d",
-                    i + 1,
-                    raw_height,
-                    h)
+            w = max(11, min(61, int(lvl.get("width", 17))))
+            h = max(11, min(31, int(lvl.get("height", 17))))
             if w % 2 == 0:
-                logger.warning(
-                    "Config: 'level[%d].width' rounded up %d -> %d",
-                    i + 1,
-                    w,
-                    w + 1)
                 w += 1
             if h % 2 == 0:
-                logger.warning(
-                    "Config: 'level[%d].height' rounded up %d -> %d",
-                    i + 1,
-                    h,
-                    h + 1)
                 h += 1
+        except (TypeError, ValueError):
+            w, h = 17, 17
         parsed.append({"width": w, "height": h})
     while len(parsed) < 10:
-        parsed.append({"width": 21, "height": 21})
+        parsed.append({"width": 17, "height": 17})
     return parsed
 
 
 class Config:
 
+    """Store validated configuration values for a game session."""
     def __init__(self, highscore_filename: str, lives: int, pacgum: int,
                  points_per_pacgum: int, points_per_super_pacgum: int,
                  points_per_ghost: int, seed: int, level_max_time: int,
                  levels: list[dict[str, int]]) -> None:
+        """Initialize a Config instance.
+
+        Args:
+            highscore_filename: Path used to store highscore data.
+            lives: Number of player lives.
+            pacgum: Maximum regular collectibles.
+            points_per_pacgum: Points awarded for a regular collectible.
+            points_per_super_pacgum: Points awarded for a power pellet.
+            points_per_ghost: Points awarded for an edible ghost.
+            seed: Optional seed for reproducible generation.
+            level_max_time: Base level time limit.
+            levels: Validated level specifications."""
         self.highscore_filename = highscore_filename
         self.lives = lives
         self.pacgum = pacgum
@@ -128,6 +113,13 @@ class Config:
 
 
 def _strip_comment_lines(text: str) -> str:
+    """Remove supported full-line comments from config text.
+
+    Args:
+        text: Text to process.
+
+    Returns:
+        Result of the operation."""
     kept_lines = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -138,6 +130,13 @@ def _strip_comment_lines(text: str) -> str:
 
 
 def load_config(path: str) -> Config:
+    """Load a JSON config file and return validated settings.
+
+    Args:
+        path: Path to the file or resource.
+
+    Returns:
+        Result of the operation."""
     try:
         with open(path, "r", encoding="utf-8") as f:
             raw_text = f.read()
@@ -151,15 +150,8 @@ def load_config(path: str) -> Config:
     if not isinstance(data, dict):
         raise SystemExit(
             "Error: config file must contain a JSON object at the root.")
-    if "highscore_filename" not in data:
-        logger.warning(
-            "Config: 'highscore_filename' missing, using default %s",
-            DEFAULTS["highscore_filename"])
     hf = data.get("highscore_filename", DEFAULTS["highscore_filename"])
     if not isinstance(hf, str) or not hf.strip():
-        logger.warning(
-            "Config: 'highscore_filename' invalid, using default %s",
-            DEFAULTS["highscore_filename"])
         hf = str(DEFAULTS["highscore_filename"])
     return Config(
         highscore_filename=str(hf),
