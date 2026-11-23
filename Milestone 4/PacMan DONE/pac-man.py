@@ -23,7 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 def main() -> None:
-    """Validate command-line usage and start the configured game."""
+    """Inicia o jogo depois de validar o argumento da linha de comando.
+
+    É o primeiro passo do fluxo: carrega a configuração indicada e entrega
+    seu controle ao loop principal de ``Game``.
+    """
     if len(sys.argv) != 2:
         print("Usage: python3 pac-man.py <config.json>")
         sys.exit(1)

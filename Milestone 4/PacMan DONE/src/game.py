@@ -22,7 +22,7 @@ MIN_WIN_HEIGHT: int = 200
 
 
 class GameState(Enum):
-    """Represent the screens and modes in the game state machine."""
+    """Identifica as telas e etapas possíveis do fluxo da partida."""
     MAIN_MENU = auto()
     PLAYING = auto()
     PAUSED = auto()
@@ -34,14 +34,18 @@ class GameState(Enum):
 
 
 class Game:
-    """Coordinate the game loop, state transitions, and user input."""
+    """Coordena o ciclo do jogo, telas, comandos e progressão dos níveis."""
     MENU_ITEMS: int = 4
 
     def __init__(self, config: Config) -> None:
-        """Initialize a Game instance.
+        """Inicializa Pygame, recordes, renderizador e estado inicial do menu.
 
         Args:
-            config: Validated game settings."""
+            config: Configurações validadas para esta partida.
+
+        É chamado pelo ponto de entrada após carregar a configuração; a tela
+        inicial que o jogador verá é o menu principal.
+        """
         self.config: Config = config
         self.highscores: HighscoreSystem = HighscoreSystem(
             config.highscore_filename)
@@ -65,11 +69,14 @@ class Game:
         self._end_timer: int = 0
 
     def _set_window_size(self, width: int, height: int) -> None:
-        """Resize the game window and update the renderer surface.
+        """Redimensiona a janela e atualiza a superfície usada para desenhar.
 
         Args:
-            width: New window width in pixels.
-            height: New window height in pixels."""
+            width: Nova largura em pixels.
+            height: Nova altura em pixels.
+
+        É chamada ao abrir um nível para acomodar seu labirinto.
+        """
         os.environ["SDL_VIDEO_CENTERED"] = "1"
         pygame.display.quit()
         self.screen = pygame.display.set_mode((width, height))
@@ -77,11 +84,18 @@ class Game:
         self.renderer.screen = self.screen
 
     def _set_menu_window(self) -> None:
-        """Restore the standard menu window dimensions."""
+        """Restaura o tamanho padrão das telas de menu.
+
+        É chamada ao voltar ao menu ou ao terminar uma partida.
+        """
         self._set_window_size(MENU_WIN_WIDTH, MENU_WIN_HEIGHT)
 
     def run(self) -> None:
-        """Start and run the main game loop until exit."""
+        """Executa continuamente entrada, atualização e desenho da tela.
+
+        É iniciada por ``main`` e mantém o jogo ativo até ``_quit`` encerrar
+        o processo.
+        """
         logger.info("Game started")
         while True:
             dt = self.clock.tick(FPS) / 1000.0
@@ -92,7 +106,10 @@ class Game:
             self.tick += 1
 
     def _handle_events(self) -> None:
-        """Read and dispatch pending Pygame events."""
+        """Lê eventos de janela e teclado e os encaminha aos tratadores.
+
+        É chamada em cada iteração do loop, antes da atualização do jogo.
+        """
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._quit()
@@ -100,12 +117,16 @@ class Game:
                 self._on_key(event.key, event.unicode, event.mod)
 
     def _on_key(self, key: int, unicode: str, mod: int = 0) -> None:
-        """Route a key press to the handler for the current game state.
+        """Encaminha uma tecla conforme a tela ou etapa atual da partida.
 
         Args:
-            key: Pygame key code.
-            unicode: Character produced by the key press.
-            mod: Active Pygame modifier flags."""
+            key: Código da tecla reconhecido pelo Pygame.
+            unicode: Caractere produzido pela tecla.
+            mod: Modificadores ativos, como Shift.
+
+        É chamada para cada tecla pressionada e direciona o comando ao menu,
+        jogo, pausa ou entrada de nome.
+        """
         if self.state == GameState.MAIN_MENU:
             self._key_menu(key)
         elif self.state == GameState.PLAYING:
@@ -125,10 +146,13 @@ class Game:
                 self.state = GameState.NAME_ENTRY
 
     def _key_menu(self, key: int) -> None:
-        """Handle menu navigation and selection.
+        """Move a seleção do menu ou abre a opção escolhida.
 
         Args:
-            key: Name of the setting or value to inspect."""
+            key: Código da tecla pressionada.
+
+        É chamada por ``_on_key`` enquanto o menu principal está visível.
+        """
         if key in (pygame.K_UP, pygame.K_w):
             self.menu_selection = (self.menu_selection - 1) % self.MENU_ITEMS
         elif key in (pygame.K_DOWN, pygame.K_s):
@@ -144,11 +168,15 @@ class Game:
                 self._quit()
 
     def _key_playing(self, key: int, mod: int = 0) -> None:
-        """Handle movement, pause, and cheat keys during play.
+        """Aplica comandos de movimento, pausa e trapaça durante o jogo.
 
         Args:
-            key: Name of the setting or value to inspect.
-            mod: Active Pygame modifier flags."""
+            key: Código da tecla pressionada.
+            mod: Modificadores ativos, usado para reconhecer Shift+C.
+
+        É chamada por ``_on_key`` no estado PLAYING; movimento é enfileirado
+        no jogador e outros comandos alteram o nível.
+        """
         if self.level is None:
             return
         if key in (pygame.K_UP, pygame.K_w):
@@ -184,10 +212,13 @@ class Game:
                 self.level.skip_level()
 
     def _key_paused(self, key: int) -> None:
-        """Handle resume and return-to-menu keys while paused.
+        """Retoma a partida ou abandona-a e retorna ao menu.
 
         Args:
-            key: Name of the setting or value to inspect."""
+            key: Código da tecla pressionada.
+
+        É chamada por ``_on_key`` quando a tela de pausa está ativa.
+        """
         if key in (pygame.K_RETURN, pygame.K_p):
             self.state = GameState.PLAYING
         elif key == pygame.K_ESCAPE:
@@ -196,11 +227,15 @@ class Game:
             self.state = GameState.MAIN_MENU
 
     def _key_name_entry(self, key: int, unicode: str) -> None:
-        """Update the name entry or save the final score.
+        """Edita o nome digitado ou salva a pontuação final confirmada.
 
         Args:
-            key: Name of the setting or value to inspect.
-            unicode: Character produced by the key press."""
+            key: Código da tecla pressionada.
+            unicode: Caractere produzido para acrescentar ao nome.
+
+        É chamada depois de vitória ou derrota quando o jogador informa
+        o nome para a tabela de recordes.
+        """
         if key == pygame.K_RETURN:
             name = self.name_buffer.strip() or "Player"
             self.highscores.add(name, self.final_score)
@@ -219,10 +254,14 @@ class Game:
                 self.name_buffer += unicode
 
     def _update(self, dt: float) -> None:
-        """Advance gameplay or end-screen state by the elapsed time.
+        """Atualiza o nível ativo ou avança o temporizador das telas finais.
 
         Args:
-            dt: Elapsed time in seconds."""
+            dt: Tempo transcorrido desde o quadro anterior, em segundos.
+
+        É chamada a cada iteração do loop; encaminha vitórias e derrotas do
+        nível para suas transições de estado.
+        """
         if self.state == GameState.PLAYING and self.level is not None:
             self.level.update(dt)
             if self.level.level_won:
@@ -235,7 +274,11 @@ class Game:
                 self.state = GameState.NAME_ENTRY
 
     def _on_level_won(self) -> None:
-        """Advance to the next level or finish the game in victory."""
+        """Carrega o próximo nível ou inicia a sequência de vitória final.
+
+        É chamada quando ``Level`` sinaliza que todas as Pacgums foram comidas;
+        vidas e pontuação são preservadas entre níveis.
+        """
         assert self.level is not None
         lives = self.level.player.lives
         score = self.level.player.score
@@ -257,7 +300,10 @@ class Game:
                 self.level.cheat_mode = cheat_active
 
     def _on_level_lost(self) -> None:
-        """Finish the game after a level is lost."""
+        """Registra o resultado e inicia a tela de derrota.
+
+        É chamada quando acabam as vidas ou o tempo do nível.
+        """
         assert self.level is not None
         self.final_score = self.level.player.score
         self._victory = False
@@ -268,7 +314,11 @@ class Game:
         self.level = None
 
     def _draw(self) -> None:
-        """Draw the screen for the current game state."""
+        """Escolhe a tela adequada ao estado atual e solicita seu desenho.
+
+        É chamada em todos os quadros depois de processar eventos e atualizar
+        a partida.
+        """
         if self.state == GameState.MAIN_MENU:
             self.renderer.draw_main_menu(
                 self.menu_selection, self.highscores.get_top(3))
@@ -290,19 +340,26 @@ class Game:
             self.renderer.draw_victory(self.final_score)
 
     def _start_game(self) -> None:
-        """Reset progression and load the first level."""
+        """Reinicia pontuação e progressão e prepara o primeiro nível.
+
+        É chamada quando o jogador escolhe iniciar uma nova partida no menu.
+        """
         self.level_index = 0
         self._load_level(0, self.config.lives, 0, seed=self.config.seed)
 
     def _load_level(self, index: int, lives: int, score: int,
                     seed: Optional[int]) -> None:
-        """Create a level and size the window for its maze.
+        """Cria o nível solicitado e ajusta a janela ao tamanho do labirinto.
 
         Args:
-            index: Index of the requested item.
-            lives: Number of player lives.
-            score: Non-negative score value.
-            seed: Optional seed for reproducible generation."""
+            index: Índice do nível, começando em zero.
+            lives: Vidas que o jogador manterá.
+            score: Pontuação que o jogador manterá.
+            seed: Semente opcional para geração reproduzível.
+
+        É chamada ao iniciar a partida e após vencer um nível; em caso de
+        falha na geração, retorna ao menu principal.
+        """
         try:
             self.level = Level(self.config, index, lives, score, seed=seed)
         except RuntimeError as exc:
@@ -319,7 +376,10 @@ class Game:
         logger.info("Level %d loaded (seed=%s)", index + 1, seed)
 
     def _quit(self) -> None:
-        """Save highscores and close Pygame cleanly."""
+        """Salva os recordes e encerra os recursos do Pygame.
+
+        É acionada pela opção Sair do menu ou pelo fechamento da janela.
+        """
         self.highscores.save()
         pygame.quit()
         sys.exit(0)

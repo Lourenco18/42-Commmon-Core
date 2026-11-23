@@ -18,50 +18,62 @@ WEST: int = 8
 class Maze:
     """Expose dimensions, walls, and traversable neighboring cells."""
     def __init__(self, width: int, height: int, grid: list[list[int]]) -> None:
-        """Initialize a Maze instance.
+        """Armazena dimensões e paredes do labirinto gerado.
 
         Args:
-            width: Maze width in cells.
-            height: Maze height in cells.
-            grid: Maze cells encoded as wall bitmasks."""
+            width: Largura do labirinto em células.
+            height: Altura do labirinto em células.
+            grid: Células codificadas com bits que representam paredes.
+
+        É chamado por ``generate_maze`` ao preparar cada novo nível.
+        """
         self.width: int = width
         self.height: int = height
         self.grid: list[list[int]] = grid
 
     def is_wall(self, row: int, col: int, direction: int) -> bool:
-        """Check whether a cell has a wall in the requested direction.
+        """Verifica se há uma parede na direção indicada a partir da célula.
 
         Args:
-            row: Maze row coordinate.
-            col: Maze column coordinate.
-            direction: Direction or wall bit to inspect.
+            row: Linha da célula atual.
+            col: Coluna da célula atual.
+            direction: Bit que identifica a direção a verificar.
 
         Returns:
-            Result of the operation."""
+            ``True`` se existe parede ou se a célula está fora do labirinto.
+
+        É consultada durante o movimento de Pac-Man e dos fantasmas.
+        """
         if row < 0 or row >= self.height or col < 0 or col >= self.width:
             return True
         return bool(self.grid[row][col] & direction)
 
     def passable(self, row: int, col: int) -> bool:
-        """Check whether a cell is inside the maze bounds.
+        """Confirma que uma posição pertence aos limites do labirinto.
 
         Args:
-            row: Maze row coordinate.
-            col: Maze column coordinate.
+            row: Linha a verificar.
+            col: Coluna a verificar.
 
         Returns:
-            Result of the operation."""
+            ``True`` se a posição está dentro da grade.
+
+        É usada na checagem de movimento e na busca de caminhos.
+        """
         return 0 <= row < self.height and 0 <= col < self.width
 
     def neighbours(self, row: int, col: int) -> list[tuple[int, int]]:
-        """Return adjacent cells reachable without crossing walls.
+        """Lista células vizinhas alcançáveis sem atravessar paredes.
 
         Args:
-            row: Maze row coordinate.
-            col: Maze column coordinate.
+            row: Linha da célula de origem.
+            col: Coluna da célula de origem.
 
         Returns:
-            Result of the operation."""
+            Coordenadas das células conectadas à origem por um corredor.
+
+        É usada para posicionar itens, procurar rotas e orientar fantasmas.
+        """
         result: list[tuple[int, int]] = []
         directions = [(NORTH, -1, 0), (EAST, 0, 1),
                       (SOUTH, 1, 0), (WEST, 0, -1)]
@@ -73,15 +85,19 @@ class Maze:
 
 
 def generate_maze(width: int, height: int, seed: Optional[int] = None) -> Maze:
-    """Generate a maze with the assigned package and adapt its grid.
+    """Gera um labirinto e converte a grade para o formato usado pelo jogo.
 
     Args:
-        width: Maze width in cells.
-        height: Maze height in cells.
-        seed: Optional seed for reproducible generation.
+        width: Largura solicitada em células.
+        height: Altura solicitada em células.
+        seed: Semente opcional para repetir a mesma geração.
 
     Returns:
-        Result of the operation."""
+        Labirinto pronto para ser usado na criação de um nível.
+
+    É chamada no início de cada nível; ajusta dimensões para ímpares e gera
+    uma semente aleatória quando nenhuma foi configurada.
+    """
     if width % 2 == 0:
         width += 1
     if height % 2 == 0:

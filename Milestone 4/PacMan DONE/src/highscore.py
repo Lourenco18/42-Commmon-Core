@@ -10,13 +10,16 @@ NAME_PATTERN: re.Pattern[str] = re.compile(r"^[a-zA-Z0-9 ]{1,10}$")
 
 
 def _validate_name(name: str) -> str:
-    """Perform the  validate name operation.
+    """Normaliza o nome e substitui valores inválidos por ``Player``.
 
     Args:
-        name: Player name.
+        name: Nome digitado na tela de recorde.
 
     Returns:
-        Result of the operation."""
+        Nome com até dez caracteres alfanuméricos ou o padrão seguro.
+
+    É usada sempre que um novo recorde é criado ou carregado do arquivo.
+    """
     name = name.strip()[:10]
     if not name or not NAME_PATTERN.match(name):
         return "Player"
@@ -26,35 +29,48 @@ def _validate_name(name: str) -> str:
 class HighscoreEntry:
     """Store a validated player name and score."""
     def __init__(self, name: str, score: int) -> None:
-        """Initialize a HighscoreEntry instance.
+        """Cria um registro de pontuação com nome e valor normalizados.
 
         Args:
-            name: Player name.
-            score: Non-negative score value."""
+            name: Nome do jogador.
+            score: Pontuação acumulada na partida.
+
+        É chamado ao carregar ou inserir uma pontuação na tabela.
+        """
         self.name: str = _validate_name(name)
         self.score: int = max(0, int(score))
 
     def to_dict(self) -> dict[str, object]:
-        """Convert the highscore entry to a JSON-compatible mapping.
+        """Converte o registro para os campos salvos no arquivo JSON.
 
         Returns:
-            Result of the operation."""
+            Dicionário com ``name`` e ``score``.
+
+        É usado por ``save`` ao persistir a tabela de recordes.
+        """
         return {"name": self.name, "score": self.score}
 
 
 class HighscoreSystem:
     """Load, rank, display, and persist highscore entries."""
     def __init__(self, filename: str) -> None:
-        """Initialize a HighscoreSystem instance.
+        """Prepara a tabela de recordes e carrega os dados existentes.
 
         Args:
-            filename: Path to the highscore file."""
+            filename: Caminho do arquivo de recordes.
+
+        É criado junto com ``Game``, antes de exibir o menu inicial.
+        """
         self.filename: str = filename
         self.entries: list[HighscoreEntry] = []
         self.load()
 
     def load(self) -> None:
-        """Load and validate saved highscores, resetting on file errors."""
+        """Lê o arquivo e mantém apenas os dez melhores registros válidos.
+
+        É chamado ao iniciar o sistema de recordes; se o arquivo não existe
+        ou não pode ser lido, começa com uma tabela vazia.
+        """
         if not os.path.exists(self.filename):
             self.entries = []
             return
@@ -82,7 +98,10 @@ class HighscoreSystem:
             self.entries = []
 
     def save(self) -> None:
-        """Write the current highscore entries to disk."""
+        """Grava a tabela de recordes atual em formato JSON.
+
+        É chamada ao confirmar o nome do jogador e ao encerrar o jogo.
+        """
         try:
             os.makedirs(os.path.dirname(self.filename) or ".", exist_ok=True)
             with open(self.filename, "w", encoding="utf-8") as f:
@@ -91,14 +110,17 @@ class HighscoreSystem:
             logger.warning("Could not save highscores: %s", exc)
 
     def add(self, name: str, score: int) -> Optional[int]:
-        """Insert a score, keep the top ten, and return its rank.
+        """Insere uma pontuação, ordena a tabela e conserva os dez primeiros.
 
         Args:
-            name: Player name.
-            score: Non-negative score value.
+            name: Nome informado após a partida.
+            score: Pontuação final.
 
         Returns:
-            Result of the operation."""
+            Posição do novo registro, ou ``None`` se ficou fora do top 10.
+
+        É chamada quando o jogador confirma a tela de entrada do nome.
+        """
         entry = HighscoreEntry(name, score)
         self.entries.append(entry)
         self.entries.sort(key=lambda e: e.score, reverse=True)
@@ -108,22 +130,28 @@ class HighscoreSystem:
         return None
 
     def is_highscore(self, score: int) -> bool:
-        """Check whether a score would enter the top ten.
+        """Verifica se uma pontuação entraria na tabela dos dez melhores.
 
         Args:
-            score: Non-negative score value.
+            score: Pontuação a comparar.
 
         Returns:
-            Result of the operation."""
+            ``True`` se ainda há vagas ou se supera o menor recorde atual.
+
+        Pode ser usada antes de solicitar o nome de um jogador.
+        """
         return len(
             self.entries) < MAX_ENTRIES or score > self.entries[-1].score
 
     def get_top(self, n: int = MAX_ENTRIES) -> list[HighscoreEntry]:
-        """Return the highest-ranking entries up to the requested count.
+        """Retorna o início da tabela já ordenada por pontuação.
 
         Args:
-            n: Maximum number of entries to return.
+            n: Quantidade máxima de registros solicitada.
 
         Returns:
-            Result of the operation."""
+            Até ``n`` recordes, do maior para o menor.
+
+        É usada para o resumo do menu e para a tela completa de recordes.
+        """
         return self.entries[:n]

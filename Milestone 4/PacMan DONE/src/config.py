@@ -28,14 +28,17 @@ INT_CLAMPS: dict[str, tuple[int, int]] = {
 
 
 def _get_int(data: dict[str, Any], key: str) -> int:
-    """Read an integer setting and clamp it to its safe range.
+    """Lê, valida e limita uma opção numérica da configuração.
 
     Args:
-        data: Configuration values to validate.
-        key: Name of the setting or value to inspect.
+        data: Opções carregadas do arquivo JSON.
+        key: Nome da opção a validar.
 
     Returns:
-        Result of the operation."""
+        Valor inteiro padrão, convertido ou limitado ao intervalo permitido.
+
+    É chamada durante a leitura da configuração, antes de criar a partida.
+    """
     default = DEFAULTS[key]
     if key not in data:
         logger.warning(
@@ -59,13 +62,17 @@ def _get_int(data: dict[str, Any], key: str) -> int:
 
 
 def _parse_levels(raw_levels: Any) -> list[dict[str, int]]:
-    """Validate level dimensions and provide at least ten levels.
+    """Valida dimensões dos labirintos e completa a lista até dez níveis.
 
     Args:
-        raw_levels: Level specifications from the configuration.
+        raw_levels: Lista de dimensões recebida do arquivo JSON.
 
     Returns:
-        Result of the operation."""
+        Níveis com largura e altura válidas, sempre com pelo menos dez itens.
+
+    É usada ao carregar a configuração para que cada etapa da partida tenha
+    um labirinto utilizável.
+    """
     if not isinstance(raw_levels, list) or len(raw_levels) == 0:
         logger.warning("Config: 'level' missing/empty, using 10 defaults")
         return [{"width": 17, "height": 17}] * 10
@@ -125,18 +132,21 @@ class Config:
                  points_per_pacgum: int, points_per_super_pacgum: int,
                  points_per_ghost: int, seed: int, level_max_time: int,
                  levels: list[dict[str, int]]) -> None:
-        """Initialize a Config instance.
+        """Guarda as opções já validadas para uma sessão de jogo.
 
         Args:
-            highscore_filename: Path used to store highscore data.
-            lives: Number of player lives.
-            pacgum: Maximum regular collectibles.
-            points_per_pacgum: Points awarded for a regular collectible.
-            points_per_super_pacgum: Points awarded for a power pellet.
-            points_per_ghost: Points awarded for an edible ghost.
-            seed: Optional seed for reproducible generation.
-            level_max_time: Base level time limit.
-            levels: Validated level specifications."""
+            highscore_filename: Caminho do arquivo de recordes.
+            lives: Vidas iniciais do jogador.
+            pacgum: Quantidade máxima de itens comuns por nível.
+            points_per_pacgum: Pontos por item comum.
+            points_per_super_pacgum: Pontos por item de poder.
+            points_per_ghost: Pontos por fantasma comido.
+            seed: Semente para geração reproduzível dos labirintos.
+            level_max_time: Tempo base de cada nível.
+            levels: Dimensões validadas dos labirintos.
+
+        É construída por ``load_config`` antes de ``Game`` iniciar.
+        """
         self.highscore_filename = highscore_filename
         self.lives = lives
         self.pacgum = pacgum
@@ -149,13 +159,16 @@ class Config:
 
 
 def _strip_comment_lines(text: str) -> str:
-    """Remove supported full-line comments from config text.
+    """Remove linhas de comentário antes de interpretar o JSON.
 
     Args:
-        text: Text to process.
+        text: Conteúdo original do arquivo de configuração.
 
     Returns:
-        Result of the operation."""
+        Texto sem linhas iniciadas por ``#`` ou ``//``.
+
+    É usada por ``load_config`` para aceitar comentários de linha inteira.
+    """
     kept_lines = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -166,13 +179,16 @@ def _strip_comment_lines(text: str) -> str:
 
 
 def load_config(path: str) -> Config:
-    """Load a JSON config file and return validated settings.
+    """Carrega o JSON e monta a configuração validada da partida.
 
     Args:
-        path: Path to the file or resource.
+        path: Caminho do arquivo informado ao iniciar o programa.
 
     Returns:
-        Result of the operation."""
+        Objeto ``Config`` com valores padrão aplicados e opções verificadas.
+
+    É chamada pelo ponto de entrada antes de construir a instância do jogo.
+    """
     try:
         with open(path, "r", encoding="utf-8") as f:
             raw_text = f.read()

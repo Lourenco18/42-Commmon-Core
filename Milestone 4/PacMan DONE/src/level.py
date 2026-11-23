@@ -11,17 +11,20 @@ GHOST_COLORS: list[str] = ["red", "pink", "cyan", "orange"]
 
 
 class Level:
-    """Manage one maze, its actors, items, timer, and outcome."""
+    """Coordena o labirinto, personagens, itens, cronômetro e resultado de um nível."""
     def __init__(self, config: Config, level_index: int, player_lives: int,
                  player_score: int, seed: Optional[int] = None) -> None:
-        """Initialize a Level instance.
+        """Monta o labirinto e prepara todos os elementos de um nível.
 
         Args:
-            config: Validated game settings.
-            level_index: Zero-based level index.
-            player_lives: Lives carried into this level.
-            player_score: Score carried into this level.
-            seed: Optional seed for reproducible generation."""
+            config: Configurações validadas da partida.
+            level_index: Índice do nível, começando em zero.
+            player_lives: Vidas preservadas do nível anterior.
+            player_score: Pontuação preservada do nível anterior.
+            seed: Semente opcional para repetir a geração.
+
+        É chamado por ``Game`` no início da partida ou ao avançar de nível.
+        """
         self.config = config
         self.level_index = level_index
         spec = config.levels[min(level_index, len(config.levels) - 1)]
@@ -92,13 +95,16 @@ class Level:
         self._place_items()
 
     def _reachable_cells(self, start: tuple[int, int]) -> set[tuple[int, int]]:
-        """Find all maze cells reachable from the starting cell.
+        """Percorre os corredores conectados a partir de uma célula inicial.
 
         Args:
-            start: Starting maze cell.
+            start: Célula de origem (linha, coluna).
 
         Returns:
-            Result of the operation."""
+            Conjunto com todas as células alcançáveis.
+
+        É usado para distribuir itens sem colocá-los em áreas inacessíveis.
+        """
         visited: set[tuple[int, int]] = {start}
         queue: list[tuple[int, int]] = [start]
         while queue:
@@ -110,10 +116,13 @@ class Level:
         return visited
 
     def _find_spawn_cell(self) -> tuple[int, int]:
-        """Find the nearest open corridor cell to the maze center.
+        """Procura um ponto inicial válido próximo ao centro do labirinto.
 
         Returns:
-            Row and column of a reachable corridor cell."""
+            Coordenadas da célula onde Pac-Man começará.
+
+        É chamado durante a criação do nível, logo após gerar o labirinto.
+        """
         center = (self.maze.height // 2, self.maze.width // 2)
         if self.maze.neighbours(*center):
             return center
@@ -133,7 +142,11 @@ class Level:
         return center
 
     def _place_items(self) -> None:
-        """Place power pellets and reachable regular collectibles."""
+        """Distribui itens de poder nos cantos e itens comuns nos corredores.
+
+        É executada uma vez durante a preparação do nível, após definir
+        a posição inicial do jogador.
+        """
         corner_cells = {
             (0, 0),
             (0, self.maze.width - 1),
@@ -153,10 +166,14 @@ class Level:
             self.pacgums.append(Pacgum(r, c))
 
     def update(self, dt: float) -> None:
-        """Advance the entity or game state by one update step.
+        """Avança o cronômetro, os personagens e as regras do nível.
 
         Args:
-            dt: Elapsed time in seconds."""
+            dt: Tempo transcorrido desde a atualização anterior, em segundos.
+
+        É chamada pelo loop do jogo enquanto a partida está ativa. Após mover
+        todos os personagens, verifica itens coletados, colisões e vitória.
+        """
         if self.level_won or self.level_lost:
             return
         if not self.time_frozen:
@@ -184,7 +201,11 @@ class Level:
         self._check_win()
 
     def _check_pacgum_collision(self) -> None:
-        """Collect items under the player and apply effects."""
+        """Marca itens na célula de Pac-Man como coletados e aplica seus efeitos.
+
+        É chamada a cada atualização depois do movimento: Pacgums dão pontos
+        e Super Pacgums também deixam os fantasmas vulneráveis.
+        """
         pr, pc = self.player.row, self.player.col
         for pg in self.pacgums:
             if not pg.eaten and pg.row == pr and pg.col == pc:
@@ -202,11 +223,15 @@ class Level:
         old_player_pos: tuple[int, int],
         old_ghost_positions: list[tuple[int, int]],
     ) -> None:
-        """Resolve contact between the player and each ghost.
+        """Resolve colisões entre Pac-Man e fantasmas, inclusive cruzamentos.
 
         Args:
-            old_player_pos: Player position before movement.
-            old_ghost_positions: Ghost positions before movement."""
+            old_player_pos: Posição de Pac-Man antes deste passo.
+            old_ghost_positions: Posições dos fantasmas antes deste passo.
+
+        É chamada após o movimento. Comer um fantasma vulnerável dá pontos;
+        tocar um fantasma perseguidor remove vida e pode encerrar o nível.
+        """
         pr, pc = self.player.row, self.player.col
         for ghost, old_ghost_pos in zip(self.ghosts, old_ghost_positions):
             same_cell = ghost.row == pr and ghost.col == pc
@@ -230,20 +255,26 @@ class Level:
                     return
 
     def _level_progress(self) -> float:
-        """Return this level position as a fraction of game progress.
+        """Calcula a fração de progresso entre o primeiro e o último nível.
 
         Returns:
-            Result of the operation."""
+            Valor entre zero e um, usado para ajustar a dificuldade.
+
+        É usada na preparação dos fantasmas para escalar seus tempos.
+        """
         total = len(self.config.levels)
         if total <= 1:
             return 0.0
         return min(1.0, self.level_index / (total - 1))
 
     def _compute_level_time(self) -> float:
-        """Calculate the time limit for this level.
+        """Calcula o limite de tempo do nível conforme a progressão da partida.
 
         Returns:
-            Result of the operation."""
+            Tempo disponível em segundos, limitado a 999.
+
+        É chamada ao criar cada nível para definir seu cronômetro.
+        """
         total = len(self.config.levels)
         start_time = float(self.config.level_max_time)
         if total <= 1:
@@ -259,12 +290,19 @@ class Level:
         return float(min(999.0, scaled))
 
     def _check_win(self) -> None:
-        """Mark the level complete when all regular items are eaten."""
+        """Marca vitória quando todas as Pacgums comuns foram coletadas.
+
+        É chamada ao fim da atualização do nível para que ``Game`` possa
+        carregar a próxima fase ou apresentar a tela de vitória final.
+        """
         if self.pacgums and all(pg.eaten for pg in self.pacgums):
             self.level_won = True
 
     def toggle_cheat_mode(self) -> None:
-        """Toggle cheat mode and reset active continuous cheats when off."""
+        """Ativa/desativa as trapaças e limpa efeitos contínuos ao desativar.
+
+        É acionada pelo atalho Shift+C durante a partida.
+        """
         self.cheat_mode = not self.cheat_mode
         if not self.cheat_mode:
             self.player.invincible = False
@@ -274,19 +312,29 @@ class Level:
                 ghost.unfreeze()
 
     def toggle_invincibility(self) -> None:
-        """Toggle player invincibility when cheat mode is active."""
+        """Alterna a invencibilidade de Pac-Man se o modo de trapaça estiver ativo.
+
+        É chamada pela tecla I enquanto a partida está em andamento.
+        """
         if not self.cheat_mode:
             return
         self.player.invincible = not self.player.invincible
 
     def skip_level(self) -> None:
-        """Immediately complete the level when cheat mode is active."""
+        """Marca o nível como vencido imediatamente, se trapaças estiverem ativas.
+
+        É acionada pela tecla X; o fluxo normal do jogo então carrega a fase
+        seguinte ou mostra a vitória final.
+        """
         if not self.cheat_mode:
             return
         self.level_won = True
 
     def toggle_ghost_freeze(self) -> None:
-        """Freeze or unfreeze ghosts when cheat mode is active."""
+        """Alterna o congelamento dos fantasmas, sem afetar os que retornam.
+
+        É chamada pela tecla F no modo de trapaça.
+        """
         if not self.cheat_mode:
             return
         all_frozen = all(
@@ -300,14 +348,20 @@ class Level:
                 ghost.freeze()
 
     def add_extra_life(self) -> None:
-        """Add one extra life up to the configured maximum."""
+        """Adiciona uma vida sem ultrapassar o limite permitido.
+
+        É chamada pela tecla L no modo de trapaça.
+        """
         if not self.cheat_mode:
             return
         _, max_lives = INT_CLAMPS["lives"]
         self.player.lives = min(max_lives, self.player.lives + 1)
 
     def remove_life(self) -> None:
-        """Remove one life from the player when cheat mode is active."""
+        """Remove uma vida e encerra o nível se não restar nenhuma.
+
+        É chamada pela tecla R no modo de trapaça.
+        """
         if not self.cheat_mode:
             return
         self.player.lives -= 1
@@ -315,13 +369,19 @@ class Level:
             self.level_lost = True
 
     def add_time(self, seconds: float = 10.0) -> None:
-        """Add bonus seconds to the level timer."""
+        """Acrescenta segundos ao cronômetro, respeitando o limite de 999.
+
+        É chamada pelo atalho de adicionar tempo no modo de trapaça.
+        """
         if not self.cheat_mode:
             return
         self.time_remaining = min(999.0, self.time_remaining + seconds)
 
     def remove_time(self, seconds: float = 10.0) -> None:
-        """Subtract seconds from the level timer."""
+        """Subtrai segundos do cronômetro e perde o nível se ele zerar.
+
+        É chamada pelo atalho de remover tempo no modo de trapaça.
+        """
         if not self.cheat_mode:
             return
         self.time_remaining = max(0.0, self.time_remaining - seconds)
@@ -329,13 +389,19 @@ class Level:
             self.level_lost = True
 
     def toggle_time_freeze(self) -> None:
-        """Freeze or unfreeze the level countdown timer."""
+        """Alterna a pausa do cronômetro do nível.
+
+        É chamada pela tecla T no modo de trapaça.
+        """
         if not self.cheat_mode:
             return
         self.time_frozen = not self.time_frozen
 
     def toggle_speed_boost(self) -> None:
-        """Toggle player movement speed boost."""
+        """Alterna o aumento de velocidade de Pac-Man.
+
+        É chamada pela tecla B no modo de trapaça.
+        """
         if not self.cheat_mode:
             return
         self.player.speed_boost = not self.player.speed_boost

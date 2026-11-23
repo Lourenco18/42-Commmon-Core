@@ -57,12 +57,15 @@ ASSET_DIR: str = os.path.join(
 
 
 class Renderer:
-    """Draw the game world, interface screens, and game entities."""
+    """Desenha o labirinto, personagens, itens e telas da interface."""
     def __init__(self, screen: pygame.Surface) -> None:
-        """Initialize a Renderer instance.
+        """Prepara fontes, animações e imagens usadas para desenhar o jogo.
 
         Args:
-            screen: Pygame surface used for drawing."""
+            screen: Superfície Pygame onde a tela será desenhada.
+
+        É criado por ``Game`` antes de mostrar o menu inicial.
+        """
         self.screen: pygame.Surface = screen
         self.cell_size: int = CELL_SIZE
         pygame.font.init()
@@ -87,11 +90,14 @@ class Renderer:
         self._load_item_sprites()
 
     def draw_game(self, level: Level, tick: int) -> None:
-        """Draw the maze, actors, items, and in-game HUD.
+        """Desenha um quadro completo do nível em andamento.
 
         Args:
-            level: Current level to render.
-            tick: Current game frame count."""
+            level: Nível ativo com labirinto, itens e personagens.
+            tick: Número do quadro, usado para sincronizar animações.
+
+        É chamada pelo estado PLAYING e também para compor a tela de pausa.
+        """
         self.screen.fill(BLACK)
         maze_px_w = level.maze.width * self.cell_size
         self._offset_x = max(0, (self.screen.get_width() - maze_px_w) // 2)
@@ -105,11 +111,14 @@ class Renderer:
 
     def draw_main_menu(self, selected: int,
                        highscores: list[HighscoreEntry]) -> None:
-        """Draw the main menu and its highscore preview.
+        """Desenha o menu principal, a opção selecionada e recordes recentes.
 
         Args:
-            selected: Selected menu item index.
-            highscores: Highscore entries to display."""
+            selected: Índice da opção atualmente selecionada.
+            highscores: Recordes exibidos como resumo.
+
+        É chamada quando a partida está no estado MAIN_MENU.
+        """
         self.screen.fill(BLACK)
         self._draw_title("PAC-MAN", YELLOW, y=60)
 
@@ -130,10 +139,13 @@ class Renderer:
                             self.font_small, (100, 100, 100), y=500)
 
     def draw_highscores(self, entries: list[HighscoreEntry]) -> None:
-        """Draw the highscore table.
+        """Desenha a tabela ordenada de recordes ou informa que está vazia.
 
         Args:
-            entries: Highscore entries to display."""
+            entries: Registros que serão apresentados na tela.
+
+        É chamada quando o jogador escolhe ver os recordes no menu.
+        """
         self.screen.fill(BLACK)
         self._draw_title("HIGH SCORES", YELLOW, y=40)
         if not entries:
@@ -151,7 +163,10 @@ class Renderer:
                             self.font_small, (100, 100, 100), y=510)
 
     def draw_instructions(self) -> None:
-        """Draw controls and game instructions."""
+        """Desenha os controles, objetivo do nível e teclas de trapaça.
+
+        É chamada quando o jogador seleciona Instruções no menu.
+        """
         self.screen.fill(BLACK)
         self._draw_title("INSTRUCTIONS", YELLOW, y=40)
         lines = [
@@ -186,10 +201,14 @@ class Renderer:
                             self.font_small, (100, 100, 100), y=510)
 
     def draw_pause(self, level: Level) -> None:
-        """Draw the pause screen and available actions.
+        """Desenha o jogo escurecido com opções para retomar ou sair.
 
         Args:
-            level: Current level to render."""
+            level: Nível que permanece pausado ao fundo.
+
+        É chamada no estado PAUSED; reutiliza ``draw_game`` para preservar
+        a visão do labirinto sob a sobreposição.
+        """
         self.draw_game(level, 0)
         overlay = pygame.Surface(self.screen.get_size(), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
@@ -209,12 +228,15 @@ class Renderer:
             y=cy + 54)
 
     def draw_name_entry(self, score: int, name_buf: str, prompt: str) -> None:
-        """Draw the final score and name-entry prompt.
+        """Desenha o resultado final e o campo de entrada do nome.
 
         Args:
-            score: Non-negative score value.
-            name_buf: Current player-name input.
-            prompt: Message shown above the name-entry prompt."""
+            score: Pontuação final da partida.
+            name_buf: Texto digitado até o momento.
+            prompt: Título que indica vitória ou derrota.
+
+        É chamada após a tela final, enquanto o jogador registra seu nome.
+        """
         self.screen.fill(BLACK)
         self._draw_title(prompt, YELLOW, y=100)
         self._draw_centered(
@@ -237,10 +259,13 @@ class Renderer:
             "ENTER to confirm", self.font_small, (120, 120, 120), y=340)
 
     def draw_game_over(self, score: int) -> None:
-        """Draw the game-over screen and final score.
+        """Desenha a tela de derrota com a pontuação obtida.
 
         Args:
-            score: Non-negative score value."""
+            score: Pontuação final da partida.
+
+        É chamada quando todas as vidas acabam ou o tempo se esgota.
+        """
         self.screen.fill(BLACK)
         self._draw_title("GAME OVER", (230, 40, 40), y=160)
         self._draw_centered(f"Score: {score}", self.font_med, WHITE, y=250)
@@ -252,10 +277,13 @@ class Renderer:
         )
 
     def draw_victory(self, score: int) -> None:
-        """Draw the victory screen and final score.
+        """Desenha a tela de vitória ao concluir todos os níveis.
 
         Args:
-            score: Non-negative score value."""
+            score: Pontuação final da partida.
+
+        É chamada depois que o jogador vence o último nível.
+        """
         self.screen.fill(BLACK)
         self._draw_title("YOU WIN!", YELLOW, y=160)
         self._draw_centered("Congratulations!", self.font_med, WHITE, y=240)
@@ -272,10 +300,13 @@ class Renderer:
         )
 
     def _animate_pacman(self, tick: int) -> None:
-        """Update the Pac-Man animation for the current frame.
+        """Abre e fecha gradualmente a boca de Pac-Man.
 
         Args:
-            tick: Current game frame count."""
+            tick: Número atual do quadro (mantido para sincronização da API).
+
+        É chamada antes de desenhar cada quadro do labirinto.
+        """
         speed = 0.08
         self._mouth_open += speed * self._mouth_dir
         if self._mouth_open > 0.55:
@@ -284,33 +315,42 @@ class Renderer:
             self._mouth_dir = 1
 
     def _cell_rect(self, row: float, col: float) -> pygame.Rect:
-        """Return the screen rectangle for a maze cell.
+        """Converte coordenadas de célula em um retângulo da tela.
 
         Args:
-            row: Maze row coordinate.
-            col: Maze column coordinate.
+            row: Posição vertical, inclusive fracionária para animação.
+            col: Posição horizontal, inclusive fracionária para animação.
 
         Returns:
-            Result of the operation."""
+            Retângulo em pixels da célula ou posição interpolada.
+
+        É usada pelos desenhos do labirinto, itens e personagens.
+        """
         x = round(self._offset_x + col * self.cell_size)
         y = round(row * self.cell_size + HUD_HEIGHT)
         return pygame.Rect(x, y, self.cell_size, self.cell_size)
 
     def _get_wall_color(self, level: Level) -> tuple[int, int, int]:
-        """Choose the wall color for the current level.
+        """Seleciona a cor de paredes associada ao nível atual.
 
         Args:
-            level: Current level to render.
+            level: Nível que será desenhado.
 
         Returns:
-            Result of the operation."""
+            Cor RGB escolhida em ciclo entre as cores disponíveis.
+
+        É usada ao desenhar o labirinto e a borda do HUD.
+        """
         return LEVEL_WALL_COLORS[level.level_index % len(LEVEL_WALL_COLORS)]
 
     def _draw_maze(self, level: Level) -> None:
-        """Draw maze corridors and walls.
+        """Desenha corredores e paredes de todas as células do labirinto.
 
         Args:
-            level: Current level to render."""
+            level: Nível cujo labirinto será exibido.
+
+        É chamada antes dos itens e personagens em cada quadro de jogo.
+        """
         maze = level.maze
         wall_thickness = 3
         wall_color = self._get_wall_color(level)
@@ -345,14 +385,17 @@ class Renderer:
     def _load_sprite(
         self, path: str, size: int
     ) -> Optional[pygame.Surface]:
-        """Load and scale a sprite, returning None on file errors.
+        """Carrega uma imagem, ajusta seu tamanho e retorna ``None`` se falhar.
 
         Args:
-            path: Path to the file or resource.
-            size: Target sprite width in pixels.
+            path: Caminho do arquivo de imagem.
+            size: Largura e altura desejadas em pixels.
 
         Returns:
-            Result of the operation."""
+            Imagem escalada ou ``None`` se o arquivo não puder ser usado.
+
+        É o auxiliar comum usado na preparação dos sprites do jogo.
+        """
         if not os.path.exists(path):
             return None
         try:
@@ -363,10 +406,13 @@ class Renderer:
             return None
 
     def _load_pacman_sprites(self, size: int) -> None:
-        """Load Pac-Man animation sprites for each direction.
+        """Carrega os quadros de Pac-Man normal e invencível por direção.
 
         Args:
-            size: Target sprite width in pixels."""
+            size: Largura e altura desejadas em pixels.
+
+        É chamada na inicialização do renderizador.
+        """
         base_dir = os.path.join(ASSET_DIR, "player")
         dirs = ("up", "down", "left", "right")
 
@@ -395,11 +441,14 @@ class Renderer:
                 self._pacman_sprites[f"invincible_{d_name}"] = valid_inv
 
     def _draw_player(self, level: Level, tick: int) -> None:
-        """Draw the player at its interpolated maze position.
+        """Desenha Pac-Man na posição animada, orientado e com proteção visível.
 
         Args:
-            level: Current level to render.
-            tick: Current game frame count."""
+            level: Nível que contém Pac-Man.
+            tick: Quadro atual, usado para escolher o sprite da animação.
+
+        É chamada em cada quadro depois de desenhar fantasmas e itens.
+        """
         p = level.player
         v_row, v_col = p.visual_pos()
         rect = self._cell_rect(v_row, v_col)
@@ -427,10 +476,13 @@ class Renderer:
             pygame.draw.circle(self.screen, color, (cx, cy), r)
 
     def _load_ghost_sprites(self, size: int) -> None:
-        """Load ghost sprites for colors and behavior states.
+        """Carrega animações de fantasmas por cor, direção e estado.
 
         Args:
-            size: Target sprite width in pixels."""
+            size: Largura e altura desejadas em pixels.
+
+        É chamada na inicialização do renderizador.
+        """
         base_dir = os.path.join(ASSET_DIR, "ghosts")
         colors = ("red", "pink", "cyan", "orange")
         dirs = ("up", "down", "left", "right")
@@ -470,10 +522,14 @@ class Renderer:
                 self._ghost_sprites[state_name] = valid
 
     def _load_eyes_sprites(self, width: int) -> None:
-        """Load directional sprites for returning ghost eyes.
+        """Carrega os sprites direcionais usados pelos olhos em retorno.
 
         Args:
-            width: Maze width in cells."""
+            width: Largura desejada do sprite em pixels.
+
+        É chamada ao inicializar o renderizador; preserva a proporção original
+        dessas imagens.
+        """
         base_dir = os.path.join(ASSET_DIR, "ghosts")
         for d_name in ("up", "down", "left", "right"):
             frames: list[pygame.Surface] = []
@@ -493,13 +549,16 @@ class Renderer:
 
     def _draw_eyes(self, ghost: object, rect: pygame.Rect,
                    dir_name: str, anim_frame: int) -> None:
-        """Draw ghost eyes during the return sequence.
+        """Desenha os olhos de um fantasma que está voltando ao seu canto.
 
         Args:
-            ghost: Ghost whose eyes are being drawn.
-            rect: Destination rectangle in pixels.
-            dir_name: Name of the direction to display.
-            anim_frame: Current animation frame index."""
+            ghost: Fantasma que está na fase de retorno.
+            rect: Retângulo de destino na tela.
+            dir_name: Direção para escolher a animação.
+            anim_frame: Índice do quadro de animação.
+
+        É chamada por ``_draw_ghosts`` quando o estado é RESPAWNING.
+        """
         frames = self._eyes_sprites.get(dir_name)
         if frames:
             sprite = frames[anim_frame % len(frames)]
@@ -519,11 +578,14 @@ class Renderer:
                 max(1, r // 2))
 
     def _draw_ghosts(self, level: Level, tick: int) -> None:
-        """Draw ghosts according to their states and animation frame.
+        """Desenha cada fantasma conforme sua posição, estado e animação.
 
         Args:
-            level: Current level to render.
-            tick: Current game frame count."""
+            level: Nível que contém os fantasmas.
+            tick: Quadro atual, usado para animar os sprites.
+
+        É chamada em cada quadro do nível antes de desenhar Pac-Man.
+        """
         anim_frame = (tick // 10) % 2
         for ghost in level.ghosts:
             v_row, v_col = ghost.visual_pos()
@@ -576,15 +638,18 @@ class Renderer:
     def _get_ghost_sprite(
         self, ghost: object, dir_name: str, frame: int
     ) -> Optional[pygame.Surface]:
-        """Choose the sprite matching a ghost state and direction.
+        """Escolhe a imagem de fantasma adequada à cor, direção e estado.
 
         Args:
-            ghost: Ghost whose eyes are being drawn.
-            dir_name: Name of the direction to display.
-            frame: Animation frame index.
+            ghost: Fantasma cujo sprite será exibido.
+            dir_name: Direção atual do movimento.
+            frame: Índice do quadro de animação.
 
         Returns:
-            Result of the operation."""
+            Sprite correspondente ou ``None`` se não houver imagem disponível.
+
+        É chamada por ``_draw_ghosts`` para cada fantasma fora do retorno.
+        """
         state = getattr(ghost, "state", None)
         if state == GhostState.EDIBLE:
             edible_timer = getattr(ghost, "edible_timer", 0)
@@ -612,7 +677,10 @@ class Renderer:
         return None
 
     def _load_item_sprites(self) -> None:
-        """Load regular and power pellet sprites."""
+        """Carrega imagens das Pacgums comuns e das Super Pacgums.
+
+        É chamada na inicialização do renderizador para preparar os itens.
+        """
         base_dir = os.path.join(ASSET_DIR, "items")
         pacgum_size = max(8, self.cell_size // 3)
         self._pacgum_sprite = self._load_sprite(
@@ -631,10 +699,13 @@ class Renderer:
             self._super_pacgum_sprites = valid
 
     def _draw_pacgums(self, level: Level) -> None:
-        """Draw regular collectibles that remain uneaten.
+        """Desenha as Pacgums comuns que ainda não foram coletadas.
 
         Args:
-            level: Current level to render."""
+            level: Nível com a lista de itens.
+
+        É chamada em cada quadro após desenhar o labirinto.
+        """
         r = max(2, self.cell_size // 8)
         for pg in level.pacgums:
             if pg.eaten:
@@ -650,11 +721,14 @@ class Renderer:
                 )
 
     def _draw_super_pacgums(self, level: Level, tick: int) -> None:
-        """Draw uneaten power pellets with their animation.
+        """Desenha Super Pacgums não coletadas com animação pulsante.
 
         Args:
-            level: Current level to render.
-            tick: Current game frame count."""
+            level: Nível com a lista de itens de poder.
+            tick: Quadro atual, usado para animar a pulsação.
+
+        É chamada em cada quadro antes dos personagens.
+        """
         anim_idx = [0, 1, 2, 1][(tick // 8) % 4]
         base_r = self.cell_size // 4
         pulse = int(2 * math.sin(tick * 0.1))
@@ -677,10 +751,13 @@ class Renderer:
                 )
 
     def _draw_hud(self, level: Level) -> None:
-        """Draw the score, lives, level, and remaining time.
+        """Desenha pontuação, vidas, nível, tempo e indicadores de trapaça.
 
         Args:
-            level: Current level to render."""
+            level: Nível cujos dados serão exibidos.
+
+        É chamada ao final do desenho de cada quadro do jogo.
+        """
         p = level.player
         w = self.screen.get_width()
         wall_color = self._get_wall_color(level)
@@ -732,25 +809,31 @@ class Renderer:
 
     def _draw_title(self, text: str,
                     color: tuple[int, int, int], y: int) -> None:
-        """Draw a centered game title.
+        """Desenha um título centralizado horizontalmente.
 
         Args:
-            text: Text to process.
-            color: RGB color for the title.
-            y: Vertical position in pixels."""
+            text: Texto do título.
+            color: Cor RGB do texto.
+            y: Posição vertical em pixels.
+
+        É usada pelas telas de menu, vitória, derrota e instruções.
+        """
         surf = self.font_large.render(text, True, color)
         x = self.screen.get_width() // 2 - surf.get_width() // 2
         self.screen.blit(surf, (x, y))
 
     def _draw_centered(self, text: str, font: pygame.font.Font,
                        color: tuple[int, int, int], y: int) -> None:
-        """Draw text horizontally centered at the requested height.
+        """Desenha texto centralizado horizontalmente na altura indicada.
 
         Args:
-            text: Text to process.
-            font: Font used to render the text.
-            color: RGB color for the title.
-            y: Vertical position in pixels."""
+            text: Conteúdo a exibir.
+            font: Fonte usada na renderização.
+            color: Cor RGB do texto.
+            y: Posição vertical em pixels.
+
+        É usada para linhas de menu, mensagens e valores da interface.
+        """
         surf = font.render(text, True, color)
         x = self.screen.get_width() // 2 - surf.get_width() // 2
         self.screen.blit(surf, (x, y))
@@ -758,12 +841,15 @@ class Renderer:
     @staticmethod
     def compute_window_size(
             maze_width: int, maze_height: int) -> tuple[int, int]:
-        """Calculate the window dimensions for a maze.
+        """Calcula a janela que comporta o labirinto e a faixa de informações.
 
         Args:
-            maze_width: Maze width in cells.
-            maze_height: Maze height in cells.
+            maze_width: Largura do labirinto em células.
+            maze_height: Altura do labirinto em células.
 
         Returns:
-            Result of the operation."""
+            Tupla (largura, altura) em pixels.
+
+        É chamada por ``Game`` ao carregar um nível para dimensionar a janela.
+        """
         return (maze_width * CELL_SIZE, maze_height * CELL_SIZE + HUD_HEIGHT)
