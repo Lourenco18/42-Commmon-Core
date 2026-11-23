@@ -16,7 +16,6 @@ WEST: int = 8
 
 
 class Maze:
-
     """Expose dimensions, walls, and traversable neighboring cells."""
     def __init__(self, width: int, height: int, grid: list[list[int]]) -> None:
         """Initialize a Maze instance.

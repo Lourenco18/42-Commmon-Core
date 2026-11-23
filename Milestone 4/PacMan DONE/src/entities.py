@@ -14,6 +14,10 @@ DIR_DOWN: tuple[int, int] = (1, 0)
 DIR_LEFT: tuple[int, int] = (0, -1)
 DIR_RIGHT: tuple[int, int] = (0, 1)
 
+ALL_DIRECTIONS: tuple[tuple[int, int], ...] = (
+    DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT
+)
+
 DIR_TO_BIT: dict[tuple[int, int], int] = {
     DIR_UP: NORTH, DIR_DOWN: SOUTH, DIR_LEFT: WEST, DIR_RIGHT: EAST,
 }
@@ -26,7 +30,65 @@ class GhostState(Enum):
     RESPAWNING = auto()
 
 
-class Player:
+class Entity:
+    """Provide shared grid coordinates and wall collision checks."""
+
+    def __init__(self, row: int, col: int) -> None:
+        """Initialize an Entity instance.
+
+        Args:
+            row: Maze row coordinate.
+            col: Maze column coordinate."""
+        self.row: int = row
+        self.col: int = col
+        self.prev_row: int = row
+        self.prev_col: int = col
+        self.direction: tuple[int, int] = DIR_LEFT
+        self.move_interval: int = 1
+        self.move_timer: int = 0
+
+    def can_move(self, maze: Maze, direction: tuple[int, int]) -> bool:
+        """Check whether moving one step in direction avoids walls.
+
+        Args:
+            maze: Maze used for movement or collision checks.
+            direction: Movement delta (d_row, d_col).
+
+        Returns:
+            True if the adjacent cell is inside bounds and open."""
+        bit = DIR_TO_BIT.get(direction, 0)
+        if bit == 0 or maze.is_wall(self.row, self.col, bit):
+            return False
+        nr = self.row + direction[0]
+        nc = self.col + direction[1]
+        return maze.passable(nr, nc)
+
+    def available_moves(self, maze: Maze) -> list[tuple[int, int]]:
+        """Return reachable neighboring coordinates without crossing walls.
+
+        Args:
+            maze: Maze used for movement or collision checks.
+
+        Returns:
+            List of valid (row, col) adjacent cells."""
+        moves: list[tuple[int, int]] = []
+        for dr, dc in ALL_DIRECTIONS:
+            if self.can_move(maze, (dr, dc)):
+                moves.append((self.row + dr, self.col + dc))
+        return moves
+
+    def visual_pos(self) -> tuple[float, float]:
+        """Return an interpolated position for smooth rendering.
+
+        Returns:
+            Interpolated (row, col) coordinates."""
+        t = min(1.0, self.move_timer / max(1, self.move_interval))
+        v_row = self.prev_row + (self.row - self.prev_row) * t
+        v_col = self.prev_col + (self.col - self.prev_col) * t
+        return (v_row, v_col)
+
+
+class Player(Entity):
     """Track the player position, movement, score, and lives."""
     BASE_INTERVAL: int = 16
     FAST_INTERVAL: int = 11
@@ -39,19 +101,15 @@ class Player:
             row: Maze row coordinate.
             col: Maze column coordinate.
             lives: Number of player lives."""
-        self.row = row
-        self.col = col
-        self.prev_row: int = row
-        self.prev_col: int = col
-        self.start_row = row
-        self.start_col = col
-        self.direction: tuple[int, int] = DIR_LEFT
+        super().__init__(row, col)
+        self.start_row: int = row
+        self.start_col: int = col
         self.next_direction: tuple[int, int] = DIR_LEFT
-        self.lives = lives
-        self.score = 0
-        self.invincible = False
+        self.lives: int = lives
+        self.score: int = 0
+        self.invincible: bool = False
         self.respawn_immunity_timer: int = 0
-        self.speed_boost = False
+        self.speed_boost: bool = False
         self.move_interval = self.BASE_INTERVAL
         self.move_timer = self.move_interval - 1
 
@@ -60,7 +118,7 @@ class Player:
         """Report whether the player currently cannot be harmed.
 
         Returns:
-            Result of the operation."""
+            True if invincible or temporarily immune after respawning."""
         return self.invincible or self.respawn_immunity_timer > 0
 
     def respawn(self) -> None:
@@ -78,21 +136,11 @@ class Player:
         """Queue a direction for the next available player move.
 
         Args:
-            direction: Direction or wall bit to inspect."""
+            direction: Movement delta (d_row, d_col)."""
         self.next_direction = direction
 
-    def visual_pos(self) -> tuple[float, float]:
-        """Return an interpolated position for smooth rendering.
-
-        Returns:
-            Result of the operation."""
-        t = min(1.0, self.move_timer / max(1, self.move_interval))
-        v_row = self.prev_row + (self.row - self.prev_row) * t
-        v_col = self.prev_col + (self.col - self.prev_col) * t
-        return (v_row, v_col)
-
     def update(self, maze: Maze) -> None:
-        """Advance the entity or game state by one update step.
+        """Advance the player state and movement by one update step.
 
         Args:
             maze: Maze used for movement or collision checks."""
@@ -113,19 +161,17 @@ class Player:
 
         self.prev_row, self.prev_col = self.row, self.col
         for direction in (self.next_direction, self.direction):
-            bit = DIR_TO_BIT.get(direction, 0)
-            if not maze.is_wall(self.row, self.col, bit):
-                nr, nc = self.row + direction[0], self.col + direction[1]
-                if maze.passable(nr, nc):
-                    self.row, self.col = nr, nc
-                    self.direction = direction
-                    self.move_timer = 0
-                    return
+            if self.can_move(maze, direction):
+                self.row += direction[0]
+                self.col += direction[1]
+                self.direction = direction
+                self.move_timer = 0
+                return
 
         self.move_timer = self.move_interval - 1
 
 
-class Ghost:
+class Ghost(Entity):
     """Track a ghost and its movement and behavior state."""
     NORMAL_INTERVAL: int = 32
     EDIBLE_INTERVAL: int = 48
@@ -168,21 +214,16 @@ class Ghost:
             eyes_wander_duration: Duration of the eyes wandering phase.
             eyes_wander_radius: Maximum wandering distance from home.
             eyes_wander_interval: Movement interval while wandering."""
-        self.row = row
-        self.col = col
-        self.prev_row: int = row
-        self.prev_col: int = col
+        super().__init__(row, col)
         self.ai_prev_row: int = row
         self.ai_prev_col: int = col
-        self.corner_row = corner_row
-        self.corner_col = corner_col
-        self.color_name = color_name
-        self.direction: tuple[int, int] = DIR_LEFT
+        self.corner_row: int = corner_row
+        self.corner_col: int = corner_col
+        self.color_name: str = color_name
         self.state: GhostState = GhostState.CHASING
         self.frozen: bool = False
-        self.edible_timer = 0
-        self.respawn_timer = 0
-        self.move_timer = 0
+        self.edible_timer: int = 0
+        self.respawn_timer: int = 0
         self.normal_interval: int = max(5, normal_interval)
         self.edible_interval: int = max(8, edible_interval)
         self.respawn_delay: int = max(0, respawn_delay)
@@ -194,13 +235,13 @@ class Ghost:
         self.eyes_wander_interval: int = max(3, eyes_wander_interval)
         self.eyes_phase: str = ""
         self.eyes_wander_timer: int = 0
-        self.move_interval: int = self.normal_interval
+        self.move_interval = self.normal_interval
 
     def _set_interval(self, new_interval: int) -> None:
         """Change movement timing while preserving step progress.
 
         Args:
-            new_interval: Value used to new interval."""
+            new_interval: Target frame interval between steps."""
         if new_interval != self.move_interval:
             ratio = self.move_timer / max(1, self.move_interval)
             self.move_interval = new_interval
@@ -234,7 +275,7 @@ class Ghost:
             maze: Maze used for movement or collision checks.
 
         Returns:
-            Result of the operation."""
+            Ordered list of cells leading to the home corner."""
         start = (self.row, self.col)
         goal = (self.corner_row, self.corner_col)
         if start == goal:
@@ -286,9 +327,11 @@ class Ghost:
             maze: Maze used for movement or collision checks."""
         near = [
             pos
-            for pos in maze.neighbours(self.row, self.col)
-            if math.hypot(pos[0] - self.corner_row,
-                          pos[1] - self.corner_col) <= self.eyes_wander_radius
+            for pos in self.available_moves(maze)
+            if math.hypot(
+                pos[0] - self.corner_row,
+                pos[1] - self.corner_col,
+            ) <= self.eyes_wander_radius
         ]
         if not near:
             return
@@ -340,16 +383,6 @@ class Ghost:
         """Allow the ghost to move again."""
         self.frozen = False
 
-    def visual_pos(self) -> tuple[float, float]:
-        """Return an interpolated position for smooth rendering.
-
-        Returns:
-            Result of the operation."""
-        t = min(1.0, self.move_timer / max(1, self.move_interval))
-        v_row = self.prev_row + (self.row - self.prev_row) * t
-        v_col = self.prev_col + (self.col - self.prev_col) * t
-        return (v_row, v_col)
-
     def update(
         self,
         maze: Maze,
@@ -358,7 +391,7 @@ class Ghost:
         player_dir: tuple[int, int] = DIR_LEFT,
         blinky_pos: Optional[tuple[int, int]] = None,
     ) -> None:
-        """Advance the entity or game state by one update step.
+        """Advance the ghost state and movement by one update step.
 
         Args:
             maze: Maze used for movement or collision checks.
@@ -404,7 +437,7 @@ class Ghost:
             blinky_pos: Position of the red ghost, if available.
 
         Returns:
-            Result of the operation."""
+            Target (row, col) cell for chase pathfinding."""
         if self.color_name == "red":
             return (player_row, player_col)
 
@@ -447,7 +480,7 @@ class Ghost:
             player_dir: Player movement direction.
             blinky_pos: Position of the red ghost, if available."""
         self.prev_row, self.prev_col = self.row, self.col
-        neighbours = maze.neighbours(self.row, self.col)
+        neighbours = self.available_moves(maze)
         if not neighbours:
             return
 
@@ -481,8 +514,20 @@ class Ghost:
         self.row, self.col = next_row, next_col
 
 
-class Pacgum:
+class Collectible:
+    """Represent a base collectible item located on a maze cell."""
+    def __init__(self, row: int, col: int) -> None:
+        """Initialize a Collectible instance.
 
+        Args:
+            row: Maze row coordinate.
+            col: Maze column coordinate."""
+        self.row: int = row
+        self.col: int = col
+        self.eaten: bool = False
+
+
+class Pacgum(Collectible):
     """Represent a regular collectible in the maze."""
     def __init__(self, row: int, col: int) -> None:
         """Initialize a Pacgum instance.
@@ -490,13 +535,10 @@ class Pacgum:
         Args:
             row: Maze row coordinate.
             col: Maze column coordinate."""
-        self.row = row
-        self.col = col
-        self.eaten = False
+        super().__init__(row, col)
 
 
-class SuperPacgum:
-
+class SuperPacgum(Collectible):
     """Represent a power pellet in the maze."""
     def __init__(self, row: int, col: int) -> None:
         """Initialize a SuperPacgum instance.
@@ -504,6 +546,4 @@ class SuperPacgum:
         Args:
             row: Maze row coordinate.
             col: Maze column coordinate."""
-        self.row = row
-        self.col = col
-        self.eaten = False
+        super().__init__(row, col)

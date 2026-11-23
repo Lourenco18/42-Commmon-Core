@@ -8,7 +8,7 @@ $(PYTHON):
 
 install: $(PYTHON)
 	$(PYTHON) -m pip install -r requirements.txt
-	$(PYTHON) -m pip install Pac-Man/mazegenerator-00001-py3-none-any.whl
+	$(PYTHON) -m pip install Pac-Man/mazegenerator-2.1.0-py3-none-any.whl
 
 run:
 	$(PYTHON) pac-man.py config.json
@@ -26,7 +26,7 @@ deep-clean: clean
 	rm -rf data
 	rm -f uv.lock
 	rm -f .mypy_cache
-	rm -f pacman-*.zips
+	rm -f pacman-*.zip
 	find . -name "*.log" -delete 2>/dev/null || true
 	find . -name ".DS_Store" -delete 2>/dev/null || true
 
@@ -42,7 +42,7 @@ lint-strict: install
 package: install
 	$(PYTHON) -m pip install pyinstaller
 	$(PYTHON) -m PyInstaller --noconfirm pacman.spec
-	cp config.json dist/
+	cp config.json README.md dist/
 	@OS_NAME=$$(uname -s); \
 	case "$$OS_NAME" in \
 		Darwin) PLATFORM=macos ;; \

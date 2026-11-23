@@ -1,3 +1,5 @@
+"""Command-line entry point for the Pac-Man game."""
+
 import logging
 import sys
 
@@ -27,6 +29,12 @@ def main() -> None:
         sys.exit(1)
 
     config_path: str = sys.argv[1]
+    if not config_path.lower().endswith(".json"):
+        print(
+            "Error: configuration file must have a '.json' extension.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     from src.config import load_config
     config = load_config(config_path)
@@ -37,4 +45,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(0)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)

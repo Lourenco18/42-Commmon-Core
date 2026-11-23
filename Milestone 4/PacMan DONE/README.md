@@ -1,7 +1,7 @@
 *This project has been created as part of the 42 curriculum by dasantos, fjose-hi.*
 
 # Pac-Man
-
+https://lourenco18.itch.io/pacman-42
 ## Description
 
 A playable Pac-Man game written in Python with **pygame**. The player navigates a generated maze, collects pacgums, avoids or eats ghosts, and progresses through multiple timed levels.
@@ -24,7 +24,7 @@ Key features:
 
 - Python 3.10 or later
 - `pip` package manager
-- The assigned A-Maze-ing wheel in `Pac-Man/mazegenerator-00001-py3-none-any.whl`
+- The assigned A-Maze-ing wheel in `Pac-Man/mazegenerator-2.1.0-py3-none-any.whl`
 
 Use a Python version with a compatible Pygame wheel when possible. If `pip` tries to compile Pygame from source, use a supported Python version or install the SDL development dependencies for your operating system.
 
@@ -204,7 +204,7 @@ pac-man.py          ← entry point, argument parsing
 src/
   config.py         ← JSON config loader, validation, safe defaults
   maze.py           ← A-Maze-ing wrapper, Maze class, wall queries
-  entities.py       ← Player, Ghost (state machine), Pacgum, SuperPacgum
+  entities.py       ← Entity (Player, Ghost) & Collectible (Pacgum, SuperPacgum)
   level.py          ← Level init, update, collision, win/loss, cheats
   highscore.py      ← HighscoreSystem (load/save/add/query)
   renderer.py       ← Pygame drawing: maze, entities, all UI screens
@@ -213,9 +213,10 @@ src/
 
 ### Key design decisions
 
+- **Object-oriented hierarchy**: `Player` and `Ghost` inherit shared grid coordinates, movement interpolation, and wall-collision checks (`can_move()`) from `Entity`, while `Pacgum` and `SuperPacgum` inherit common item state from `Collectible`.
 - **No pygame in the domain layer** (`config`, `maze`, `entities`, `level`, `highscore`): these modules are pure Python and independently testable.
 - **State machine** (`GameState` enum in `game.py`): all screen transitions are explicit enum values — no ad-hoc flags.
-- **Ghost AI**: greedy distance-based with a small random jitter, producing natural-looking but imperfect chase behavior. Ghosts switch to flee mode when edible.
+- **Ghost AI**: classic individual chase targeting without reversing direction at intersections — **Red (Blinky)** pursues the player directly, **Pink (Pinky)** ambushes 4 tiles ahead of the player's direction, **Cyan (Inky)** uses a doubled vector from Blinky through a pivot 2 tiles ahead of the player, and **Orange (Clyde)** chases when more than 8 tiles away or retreats to its home corner when closer. When edible, ghosts flee away from the player with slight random jitter; when eaten, eyes return to their home corner via BFS pathfinding before reviving.
 - **Type hints everywhere**: all functions and class attributes carry type annotations; compatible with `mypy`.
 - **Docstrings**: Google-style docstrings document every project function and class, including private helpers (PEP 257).
 - **Exception handling**: try/except guards all I/O (config, highscores) and the maze generator call.
@@ -249,11 +250,11 @@ src/
                  │
      ┌───────────┼───────────┐
      │           │           │
-  ┌──▼──┐   ┌───▼──┐   ┌────▼────┐
-  │Maze │   │Player│   │ Ghosts  │
-  │     │   │Ghost │   │Pacgum   │
-  │grid │   │lives │   │SuperPgm │
-  └──▲──┘   └──────┘   └─────────┘
+  ┌──▼──┐   ┌───▼────┐  ┌────▼──────┐
+  │Maze │   │ Entity │  │Collectible│
+  │     │   │ ├Player│  │ ├Pacgum   │
+  │grid │   │ └Ghost │  │ └SuperPgm │
+  └──▲──┘   └────────┘  └───────────┘
      │
   MazeGenerator
   (external pkg)
@@ -265,7 +266,7 @@ src/
 |--------|---------------|
 | `config.py` | Parse and validate JSON config; safe defaults |
 | `maze.py` | Wrap mazegenerator; expose `is_wall()`, `neighbours()` |
-| `entities.py` | Player movement, Ghost state machine, item dataclasses |
+| `entities.py` | Base `Entity` (`Player`, `Ghost` state machine) and `Collectible` (`Pacgum`, `SuperPacgum`) |
 | `level.py` | Level lifecycle: init, update, collision detection, cheats |
 | `highscore.py` | Load/save JSON highscores; validate names and scores |
 | `renderer.py` | All pygame drawing (maze, entities, menus, HUD) |
@@ -275,18 +276,24 @@ src/
 
 ## Project Packaging
 
-The root `pacman.spec` builds a one-file executable and bundles the game sprites. `make package` also places `config.json` beside the executable and creates an OS-specific ZIP in the project root:
+The root `pacman.spec` builds a one-file executable and bundles the game sprites. `make package` also places `config.json` and `README.md` beside the executable and creates an OS-specific ZIP in the project root:
 
 - macOS build: `pacman-macos.zip`
 - Linux build: `pacman-linux.zip`
 
-The executable is `dist/pacman`. PyInstaller builds for the operating system and architecture on which it runs; create the Linux ZIP on a compatible Linux machine (for example, Linux x86_64 for x86_64 evaluation PCs). A macOS build cannot be used as the Linux package. Build artefacts in `build/` and `dist/` are intentionally untracked — see `.gitignore`.
+The executable is `dist/pacman`. After extracting the release ZIP, run the packaged binary from that folder with a configuration file argument:
 
-Upload the platform ZIP to the project's itch.io downloadable page. Add the published itch.io page URL here once it is available.
+```bash
+./pacman config.json
+```
+
+PyInstaller builds for the operating system and architecture on which it runs; create the Linux ZIP on a compatible Linux machine (for example, Linux x86_64 for x86_64 evaluation PCs). A macOS build cannot be used as the Linux package. Build artefacts in `build/` and `dist/` are intentionally untracked — see `.gitignore`.
+
+Upload the platform ZIP to the project's itch.io downloadable page.
 
 ## Project Management
 
-See [`project_management/PROJECT_MANAGEMENT.md`](project_management/PROJECT_MANAGEMENT.md) for:
+See [`project_management/00_project_management_overview.md`](project_management/00_project_management_overview.md) for:
 - Full timeline and Gantt breakdown
 - Technical choices and rationale
 - Risk analysis and mitigations

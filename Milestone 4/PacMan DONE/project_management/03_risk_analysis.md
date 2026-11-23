@@ -1,0 +1,13 @@
+# Risk Analysis and Mitigation
+
+## Risk Register
+
+| ID | Risk Description | Likelihood | Impact | Preventive Strategy | Runtime Mitigation |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **R1** | **Assigned `mazegenerator` package raises an exception or is reinstalled during defense** | Medium | High | Keep the wheel completely unmodified; isolate all calls inside `src/maze.py` and exclude `mazegenerator.*` in `mypy.ini`. | Catch `ImportError` and runtime exceptions cleanly, log the error, and exit or return to the main menu without a traceback. |
+| **R2** | **Player spawns inside the closed `"42"` wall pattern or pacgums spawn in isolated cells** | High | High | Analyze `A-Maze-ing` maze topology during integration testing. | Use BFS (`_find_spawn_cell`) to place the player in the nearest open corridor and `_reachable_cells` so 100% of pacgums are reachable. |
+| **R3** | **Malformed, missing, or modified `config.json` during live evaluation** | High | Medium | Define explicit `DEFAULTS` and `INT_CLAMPS` in `src/config.py`; test with invalid types and missing keys. | Strip `#` and `//` comments, ignore unknown keys, clamp out-of-range values with `logger.warning`, or exit cleanly on unreadable JSON. |
+| **R4** | **Large maze dimensions exceed comfortable window layout** | Medium | Medium | Cap level dimensions to reasonable odd bounds (`11..61` width, `11..31` height) and enforce minimum window dimensions (`200x200`). | Keep `CELL_SIZE = 31` crisp and dynamically resize the Pygame window via `Renderer.compute_window_size()` on every level load. |
+| **R5** | **Highscore file missing, corrupted, or containing invalid player names** | Medium | Low | Validate names against `^[a-zA-Z0-9 ]{1,10}$` and clamp scores to non-negative integers (`>= 0`). | Wrap file read/write in `try/except`; reset gracefully to an empty Top-10 list on decode or OS errors. |
+| **R6** | **Unhandled Python exception causes a traceback crash (0 grade flag)** | Low | Critical | Enforce type checking (`mypy`), linting (`flake8`), and defensive `try/except` around all I/O. | Top-level `try/except Exception` in `pac-man.py` catches any unexpected error and prints a clean message to `stderr`. |
+| **R7** | **Packaged executable fails to locate sprites or runs on a different OS architecture** | Medium | Medium | Bundle `assets/` in `pacman.spec`, copy `config.json` and `README.md` in `make package`, and document OS-specific builds. | Resolve `ASSET_DIR` via `sys._MEIPASS` in `src/renderer.py`, with geometric circle/rectangle fallback rendering if any sprite file is absent. |

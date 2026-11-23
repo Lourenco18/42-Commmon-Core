@@ -11,7 +11,6 @@ GHOST_COLORS: list[str] = ["red", "pink", "cyan", "orange"]
 
 
 class Level:
-
     """Manage one maze, its actors, items, timer, and outcome."""
     def __init__(self, config: Config, level_index: int, player_lives: int,
                  player_score: int, seed: Optional[int] = None) -> None:
@@ -43,9 +42,8 @@ class Level:
                 exc)
             raise
 
-        center_row = self.maze.height // 2
-        center_col = self.maze.width // 2
-        self.player: Player = Player(center_row, center_col, player_lives)
+        spawn_row, spawn_col = self._find_spawn_cell()
+        self.player: Player = Player(spawn_row, spawn_col, player_lives)
         self.player.score = player_score
 
         corners = [
@@ -110,6 +108,29 @@ class Level:
                     visited.add(nxt)
                     queue.append(nxt)
         return visited
+
+    def _find_spawn_cell(self) -> tuple[int, int]:
+        """Find the nearest open corridor cell to the maze center.
+
+        Returns:
+            Row and column of a reachable corridor cell."""
+        center = (self.maze.height // 2, self.maze.width // 2)
+        if self.maze.neighbours(*center):
+            return center
+        visited: set[tuple[int, int]] = {center}
+        queue: list[tuple[int, int]] = [center]
+        idx = 0
+        while idx < len(queue):
+            r, c = queue[idx]
+            idx += 1
+            for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                nr, nc = r + dr, c + dc
+                if self.maze.passable(nr, nc) and (nr, nc) not in visited:
+                    if self.maze.neighbours(nr, nc):
+                        return (nr, nc)
+                    visited.add((nr, nc))
+                    queue.append((nr, nc))
+        return center
 
     def _place_items(self) -> None:
         """Place power pellets and reachable regular collectibles."""

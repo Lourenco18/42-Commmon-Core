@@ -24,7 +24,6 @@ def _validate_name(name: str) -> str:
 
 
 class HighscoreEntry:
-
     """Store a validated player name and score."""
     def __init__(self, name: str, score: int) -> None:
         """Initialize a HighscoreEntry instance.
@@ -44,7 +43,6 @@ class HighscoreEntry:
 
 
 class HighscoreSystem:
-
     """Load, rank, display, and persist highscore entries."""
     def __init__(self, filename: str) -> None:
         """Initialize a HighscoreSystem instance.
